@@ -21,10 +21,10 @@ git push -u origin main
 
 ## 2. Codex Desktop
 
-- [ ] Elegir **Add/Open project**.
-- [ ] Abrir la carpeta `LUCTIV - Maintenance APP`.
-- [ ] Crear una tarea nueva titulada `LUCTIV: Maintenance APP`.
-- [ ] Usar este primer mensaje:
+- [x] Elegir **Add/Open project**.
+- [x] Abrir la carpeta del repositorio `LUCTIV: Maintenance APP`.
+- [x] Crear una tarea nueva titulada `LUCTIV: Maintenance APP`.
+- [x] Usar este primer mensaje:
 
 ```text
 Trabaja sólo en el nuevo proyecto Angular LUCTIV: Maintenance APP.
@@ -35,11 +35,12 @@ propón el siguiente incremento P0.
 
 ## 3. ChatGPT
 
-- [ ] En la barra lateral, elegir **Nuevo proyecto**.
-- [ ] Nombrarlo `LUCTIV: Maintenance APP`.
-- [ ] Agregar las instrucciones de `CHATGPT_PROJECT_INSTRUCTIONS.md`.
-- [ ] Subir las cinco fuentes indicadas en ese archivo.
-- [ ] Iniciar un chat nuevo usando el mensaje recomendado.
+- [x] En la barra lateral, elegir **Nuevo proyecto**.
+- [x] Nombrarlo `LUCTIV: Maintenance APP`.
+- [x] Configurar memoria **Solo para el proyecto**.
+- [x] Agregar las instrucciones de `CHATGPT_PROJECT_INSTRUCTIONS.md`.
+- [x] Subir las cinco fuentes indicadas en ese archivo.
+- [x] Iniciar un chat nuevo usando el mensaje recomendado.
 
 ## 4. Devin
 
