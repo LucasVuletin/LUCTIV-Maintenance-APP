@@ -9,9 +9,30 @@ Repositorio privado activo:
 No usar el repositorio legado como repositorio de trabajo. Su enlace se conserva
 en `docs/SOURCE_OF_TRUTH.md`.
 
+## Acceso a Devin Enterprise
+
+El acceso corporativo y la integración de GitHub son pasos separados:
+
+1. Iniciar sesión en el tenant de Halliburton con la identidad corporativa
+   autorizada, preferentemente mediante SSO o Google con el correo laboral.
+2. Si aparece `access_denied` indicando que la identidad no pertenece a la
+   organización, pedir a un administrador de Devin Enterprise que invite el
+   correo laboral o lo agregue al grupo IdP correspondiente.
+3. Aceptar la invitación y volver a autenticarse.
+4. Conectar la cuenta personal de GitHub únicamente después de entrar al tenant.
+
+No usar la cuenta personal de GitHub como identidad de acceso al tenant
+empresarial. Devin advierte que el correo personal de GitHub puede no coincidir
+con el correo laboral registrado en la organización.
+
+Referencias oficiales:
+
+- `https://docs.devin.ai/enterprise/getting-started/get-started`
+- `https://docs.devin.ai/enterprise/security-access/idp-groups`
+
 ## Integración de GitHub
 
-1. Abrir `app.devin.ai`.
+1. Entrar al tenant empresarial de Halliburton.
 2. Ir a **Settings → Integrations → GitHub**.
 3. Elegir **Add Connection**.
 4. Autorizar la cuenta `LucasVuletin`.

@@ -44,6 +44,9 @@ propón el siguiente incremento P0.
 
 ## 4. Devin
 
+- [ ] Acceder al tenant de Halliburton con la identidad corporativa autorizada.
+- [ ] Si aparece `access_denied`, solicitar al administrador la invitación al
+  tenant o la asignación al grupo IdP correspondiente.
 - [ ] Conectar GitHub en **Settings → Integrations → GitHub**.
 - [ ] Autorizar únicamente el repositorio nuevo.
 - [ ] Agregarlo en **Devin's Machine**.
