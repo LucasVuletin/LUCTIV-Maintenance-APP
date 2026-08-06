@@ -1,0 +1,242 @@
+<div class="app-shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Operations & maintenance control</p>
+      <h1>LUCTIV<span>:</span> Maintenance APP</h1>
+      <p class="subtitle">Angular / TypeScript · Versión inicial 2026</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="button button-warning" type="button" (click)="store.simulateFailure()">
+        Simular caída
+      </button>
+      <button class="button" type="button" (click)="store.exportSnapshot()">
+        Exportar snapshot
+      </button>
+      <button class="button button-ghost" type="button" (click)="resetWorkspace()">
+        Restablecer
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="context-grid" aria-label="Contexto de etapa">
+      <article class="panel context-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Trabajo activo</p>
+            <h2>PAD, pozo y etapa</h2>
+          </div>
+          <span class="status-pill status-online">Persistencia local</span>
+        </div>
+
+        <form class="stage-form" (ngSubmit)="saveStage()">
+          <label>
+            <span>PAD</span>
+            <input name="pad" [(ngModel)]="stageDraft.pad" autocomplete="off" />
+          </label>
+          <label>
+            <span>Pozo</span>
+            <input name="well" [(ngModel)]="stageDraft.well" autocomplete="off" />
+          </label>
+          <label>
+            <span>Etapa</span>
+            <input name="stage" [(ngModel)]="stageDraft.stage" autocomplete="off" />
+          </label>
+          <button class="button button-primary" type="submit">Guardar contexto</button>
+        </form>
+      </article>
+
+      <article class="panel set-panel">
+        <p class="eyebrow">Configuración</p>
+        <h2>SET {{ store.state().selectedSet }}</h2>
+        <div class="set-selector" aria-label="Seleccionar SET">
+          @for (setNumber of sets; track setNumber) {
+            <button
+              type="button"
+              [class.active]="store.state().selectedSet === setNumber"
+              (click)="store.setSelectedSet(setNumber)"
+            >
+              {{ setNumber }}
+            </button>
+          }
+        </div>
+      </article>
+    </section>
+
+    <section class="metrics" aria-label="Resumen operativo">
+      <article class="metric">
+        <span>Operativas</span>
+        <strong>{{ store.operativeCount() }}</strong>
+      </article>
+      <article class="metric metric-danger">
+        <span>Offline</span>
+        <strong>{{ store.offlineCount() }}</strong>
+      </article>
+      <article class="metric">
+        <span>Reserva</span>
+        <strong>{{ store.reserveCount() }}</strong>
+      </article>
+      <article class="metric">
+        <span>Eventos</span>
+        <strong>{{ store.state().operationalEvents.length }}</strong>
+      </article>
+    </section>
+
+    <section class="workspace-grid">
+      <div class="layout-column">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Spread operativo</p>
+            <h2>Layout de bombas</h2>
+          </div>
+          <p>
+            {{ store.state().stageContext.pad }} · Pozo
+            {{ store.state().stageContext.well }} · Etapa
+            {{ store.state().stageContext.stage }}
+          </p>
+        </div>
+
+        <div class="manifold-grid">
+          @for (manifold of store.state().manifolds; track manifold.id) {
+            <article
+              class="panel manifold"
+              [class.manifold-clean]="manifold.type === 'clean'"
+              [class.manifold-dirty]="manifold.type === 'dirty'"
+            >
+              <div class="manifold-heading">
+                <div>
+                  <p class="eyebrow">
+                    {{ manifold.type === 'clean' ? 'Circuito LIMPIO' : 'Circuito SUCIO' }}
+                  </p>
+                  <h3>{{ manifold.label }}</h3>
+                </div>
+                <span class="line-chip">
+                  {{ manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO' }}
+                </span>
+              </div>
+
+              <div class="pump-list">
+                @for (pump of pumpsForManifold(manifold); track pump.id) {
+                  <article class="pump-card" [class.offline]="pump.status === 'offline'">
+                    <div class="pump-identity">
+                      <span class="status-dot"></span>
+                      <div>
+                        <strong>{{ pump.sap }}</strong>
+                        <small>Posición {{ pump.position }} · {{ pump.side }}</small>
+                      </div>
+                    </div>
+
+                    <div class="pump-action">
+                      <span>{{ pump.status === 'operative' ? 'OPERATIVA' : 'OFFLINE' }}</span>
+                      @if (pump.status === 'operative') {
+                        <button type="button" (click)="store.markPumpOffline(pump.id)">
+                          Marcar caída
+                        </button>
+                      } @else {
+                        <button type="button" (click)="store.restorePump(pump.id)">
+                          Restaurar
+                        </button>
+                      }
+                    </div>
+
+                    @if (pump.offlineReason) {
+                      <p class="offline-reason">{{ pump.offlineReason }}</p>
+                    }
+                  </article>
+                }
+              </div>
+            </article>
+          }
+        </div>
+
+        <article class="panel reserve-panel">
+          <div class="manifold-heading">
+            <div>
+              <p class="eyebrow">Fuera del SET</p>
+              <h3>Bombas de reserva</h3>
+            </div>
+          </div>
+          <div class="pump-list">
+            @for (pump of reservePumps(); track pump.id) {
+              <article class="pump-card">
+                <div class="pump-identity">
+                  <span class="status-dot"></span>
+                  <div>
+                    <strong>{{ pump.sap }}</strong>
+                    <small>Disponible para reemplazo</small>
+                  </div>
+                </div>
+                <span class="status-pill status-online">LISTA</span>
+              </article>
+            }
+          </div>
+        </article>
+      </div>
+
+      <aside class="maintenance-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Entre etapas</p>
+              <h2>Plan de mantenimiento</h2>
+            </div>
+            <span class="count-pill">{{ store.state().maintenanceTasks.length }}</span>
+          </div>
+
+          <div class="task-list">
+            @for (task of store.state().maintenanceTasks; track task.id) {
+              <label class="task-card" [class.completed]="task.status === 'completed'">
+                <input
+                  type="checkbox"
+                  [checked]="task.status === 'completed'"
+                  (change)="store.toggleTask(task.id)"
+                />
+                <div>
+                  <span>{{ task.department }} · {{ task.pumpSap }}</span>
+                  <p>{{ task.action }}</p>
+                </div>
+              </label>
+            } @empty {
+              <p class="empty-state">
+                No hay tareas. Usa “Simular caída” para probar el flujo
+                alerta → recomendación → mantenimiento.
+              </p>
+            }
+          </div>
+        </article>
+
+        <article class="panel alert-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Historial local</p>
+              <h2>Alertas operativas</h2>
+            </div>
+          </div>
+
+          <div class="event-list">
+            @for (event of store.state().operationalEvents; track event.id) {
+              <article class="event-card">
+                <div>
+                  <strong>{{ event.pumpSap }} OFFLINE</strong>
+                  <span>{{ event.department }} · {{ event.line }}</span>
+                </div>
+                <p>{{ event.recommendation }}</p>
+                <time [attr.datetime]="event.createdAt">
+                  {{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                </time>
+              </article>
+            } @empty {
+              <p class="empty-state">Sin alertas registradas.</p>
+            }
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <span>LUCTIV: Maintenance APP</span>
+    <span>Desarrollado por Lucas Vuletin</span>
+  </footer>
+</div>
