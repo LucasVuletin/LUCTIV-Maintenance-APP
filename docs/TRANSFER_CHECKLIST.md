@@ -2,18 +2,18 @@
 
 ## 1. GitHub
 
-- [ ] Iniciar sesión en GitHub.
-- [ ] Crear un repositorio privado llamado `LUCTIV-Maintenance-APP`.
-- [ ] No agregar README, `.gitignore` ni licencia desde GitHub.
-- [ ] Inicializar Git en esta carpeta con rama `main`.
-- [ ] Confirmar todos los archivos del proyecto nuevo.
-- [ ] Agregar el remoto:
+- [x] Iniciar sesión en GitHub.
+- [x] Crear un repositorio privado llamado `LUCTIV-Maintenance-APP`.
+- [x] No agregar README, `.gitignore` ni licencia desde GitHub.
+- [x] Inicializar Git en esta carpeta con rama `main`.
+- [x] Confirmar todos los archivos del proyecto nuevo.
+- [x] Agregar el remoto:
 
 ```bash
 git remote add origin https://github.com/LucasVuletin/LUCTIV-Maintenance-APP.git
 ```
 
-- [ ] Publicar:
+- [x] Publicar:
 
 ```bash
 git push -u origin main
