@@ -96,7 +96,11 @@ material changes. Keep UI terminology in Spanish.
 
 ## Escritorio y nube
 
-- Escritorio: clonar el mismo repo y trabajar en una rama.
+- Escritorio: el clon local está abierto y marcado como confiable en Devin
+  Desktop con la sesión corporativa.
+- Ruta verificada:
+  `C:\Users\H317042\OneDrive - Halliburton\Documents\LUCTIV_ Maintenance APP`.
+- Source Control reconoce la rama `main`, que sigue a `origin/main`.
 - Nube: agregar el repo a Devin's Machine y dejar que cada sesión cree su rama.
 - Ambos entornos deben hacer pull antes de empezar y push antes de transferir el
   trabajo al otro.

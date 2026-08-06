@@ -44,6 +44,9 @@ propón el siguiente incremento P0.
 
 ## 4. Devin
 
+- [x] Abrir el clon local en Devin Desktop.
+- [x] Marcar la carpeta del repositorio como confiable.
+- [x] Verificar que Source Control reconoce la rama `main`.
 - [ ] Acceder al tenant de Halliburton con la identidad corporativa autorizada.
 - [ ] Si aparece `access_denied`, solicitar al administrador la invitación al
   tenant o la asignación al grupo IdP correspondiente.
