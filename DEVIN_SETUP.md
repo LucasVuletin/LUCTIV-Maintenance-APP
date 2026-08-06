@@ -2,7 +2,7 @@
 
 ## Repositorio
 
-Repositorio nuevo previsto:
+Repositorio privado activo:
 
 `https://github.com/LucasVuletin/LUCTIV-Maintenance-APP`
 

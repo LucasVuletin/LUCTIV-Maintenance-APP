@@ -50,13 +50,18 @@ configuración necesarias para consultar el comportamiento más reciente.
 
 ## Repositorio nuevo
 
-Nombre previsto:
+Repositorio activo:
 
 `LucasVuletin/LUCTIV-Maintenance-APP`
 
-URL prevista:
+URL:
 
 `https://github.com/LucasVuletin/LUCTIV-Maintenance-APP`
 
-Hasta que GitHub confirme su creación, esta URL debe considerarse prevista y no
-publicada.
+Remoto Git:
+
+`https://github.com/LucasVuletin/LUCTIV-Maintenance-APP.git`
+
+- Rama por defecto: `main`
+- Visibilidad: privada
+- Estado: creado y confirmado en GitHub
