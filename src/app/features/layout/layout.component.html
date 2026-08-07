@@ -1,0 +1,34 @@
+<section class="layout-intro"><div><span>CONFIGURACIÓN FÍSICA</span><h2>Layout de bombas y manifolds</h2><p>Arrastra bombas entre slots y banco de reserva. Los circuitos LIMPIO y SUCIO mantienen su identificación de campo.</p></div><div class="legend"><b class="clean">LIMPIO</b><b class="dirty">SUCIO</b><b class="offline">NO DISPONIBLE</b></div></section>
+
+@for (manifold of store.state().manifolds; track manifold.id) {
+  <section class="manifold" [class.clean-manifold]="manifold.type === 'clean'" [class.dirty-manifold]="manifold.type === 'dirty'">
+    <header><div><span>{{ manifold.type === 'clean' ? 'CIRCUITO LIMPIO' : 'CIRCUITO SUCIO' }}</span><h3>{{ manifold.label }}</h3></div><label><span>Slots por lado</span><input type="number" min="1" max="12" [(ngModel)]="manifold.pumpsPerSide" (change)="saveManifold(manifold)" /></label></header>
+    <div class="manifold-grid">
+      <div class="slot-column">
+        @for (position of positions(manifold.pumpsPerSide); track position) {
+          <ng-container [ngTemplateOutlet]="slot" [ngTemplateOutletContext]="{ manifold: manifold, side: 'left', position: position }" />
+        }
+      </div>
+      <div class="spine"><strong>{{ manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO' }}</strong></div>
+      <div class="slot-column">
+        @for (position of positions(manifold.pumpsPerSide); track position) {
+          <ng-container [ngTemplateOutlet]="slot" [ngTemplateOutletContext]="{ manifold: manifold, side: 'right', position: position }" />
+        }
+      </div>
+    </div>
+  </section>
+}
+
+<section class="bench" (dragover)="$event.preventDefault()" (drop)="dropBench($event)"><header><div><span>FUERA DEL SET / SPARES</span><h2>Banco de reserva</h2></div><b>{{ benchCount() }} unidades</b></header><div class="bench-grid">
+  @for (pump of store.state().pumps; track pump.id) { @if (pump.side === 'bench') { <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: pump }" /> } }
+</div></section>
+
+<ng-template #slot let-manifold="manifold" let-side="side" let-position="position">
+  <div class="slot" (dragover)="$event.preventDefault()" (drop)="drop({ manifoldId: manifold.id, side: side, position: position }, $event)">
+    @if (slotPump({ manifoldId: manifold.id, side: side, position: position }); as pump) { <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: pump }" /> }
+    @else { <span class="empty-slot">{{ side === 'left' ? 'L' : 'R' }}-{{ position }}</span> }
+    <label class="actuator"><span>ACT</span><input [ngModel]="actuator({ manifoldId: manifold.id, side: side, position: position })" (ngModelChange)="store.setActuator({ manifoldId: manifold.id, side: side, position: position }, $event)" maxlength="3" /></label>
+  </div>
+</ng-template>
+
+<ng-template #pumpCard let-pump="pump"><article class="pump-card" draggable="true" (dragstart)="beginDrag(pump.id, $event)" [class.pump-down]="pump.conditionClass === 'Broken' || pump.conditionClass === 'Under diagnosis'" [class.pump-warning]="pump.conditionClass === 'Almost / Consumable'"><div><span>PUMP</span><strong>{{ pump.sap }}</strong></div><b>{{ pump.currentStatus }}</b><small>{{ pump.conditionClass }}</small><div class="signals"><span>P {{ pump.signals.p }}</span><span>D {{ pump.signals.d }}</span><span>S {{ pump.signals.s }}</span></div></article></ng-template>

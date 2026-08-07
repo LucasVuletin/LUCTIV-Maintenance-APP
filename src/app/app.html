@@ -1,242 +1,38 @@
 <div class="app-shell">
   <header class="topbar">
-    <div>
-      <p class="eyebrow">Operations & maintenance control</p>
-      <h1>LUCTIV<span>:</span> Maintenance APP</h1>
-      <p class="subtitle">Angular / TypeScript · Versión inicial 2026</p>
-    </div>
-
-    <div class="header-actions">
-      <button class="button button-warning" type="button" (click)="store.simulateFailure()">
-        Simular caída
-      </button>
-      <button class="button" type="button" (click)="store.exportSnapshot()">
-        Exportar snapshot
-      </button>
-      <button class="button button-ghost" type="button" (click)="resetWorkspace()">
-        Restablecer
-      </button>
-    </div>
+    <div class="brand"><div class="mark">L</div><div><h1>LUCTIV: Maintenance APP</h1><p>Control operacional PRIME · mantenimiento de bombas</p></div></div>
+    <div class="schema"><span>LUCTIV V1 PRIME</span><strong>PRIME_SCHEMA_VERSION = "{{ schemaVersion }}"</strong></div>
   </header>
 
-  <main>
-    <section class="context-grid" aria-label="Contexto de etapa">
-      <article class="panel context-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Trabajo activo</p>
-            <h2>PAD, pozo y etapa</h2>
-          </div>
-          <span class="status-pill status-online">Persistencia local</span>
-        </div>
+  <section class="stage-context">
+    <label><span>PAD</span><input [ngModel]="store.state().stage.pad" (ngModelChange)="updateStage('pad', $event)" /></label>
+    <label><span>SET</span><select [ngModel]="store.state().stage.setId" (ngModelChange)="updateSet($event)">@for (set of sets; track set) { <option [value]="set">{{ set }}</option> }</select></label>
+    <label><span>Spread</span><input [ngModel]="store.state().stage.spreadIdentifier" (ngModelChange)="updateStage('spreadIdentifier', $event)" /></label>
+    <label><span>Cuadrilla</span><input [ngModel]="store.state().stage.crewName" (ngModelChange)="updateStage('crewName', $event)" /></label>
+    <label><span>Pozo</span><input [ngModel]="store.state().stage.well" (ngModelChange)="updateStage('well', $event)" /></label>
+    <label><span>Etapa</span><input type="number" min="0" [ngModel]="store.state().stage.stage" (ngModelChange)="updateStageNumber($event)" /></label>
+    <label><span>Operador</span><input [ngModel]="store.state().stage.capturedBy" (ngModelChange)="updateStage('capturedBy', $event)" /></label>
+    <label><span>Ventana STT</span><div class="unit-input"><input type="number" min="1" [ngModel]="store.state().stage.targetMinutes" (ngModelChange)="updateTarget($event)" /><b>min</b></div></label>
+  </section>
 
-        <form class="stage-form" (ngSubmit)="saveStage()">
-          <label>
-            <span>PAD</span>
-            <input name="pad" [(ngModel)]="stageDraft.pad" autocomplete="off" />
-          </label>
-          <label>
-            <span>Pozo</span>
-            <input name="well" [(ngModel)]="stageDraft.well" autocomplete="off" />
-          </label>
-          <label>
-            <span>Etapa</span>
-            <input name="stage" [(ngModel)]="stageDraft.stage" autocomplete="off" />
-          </label>
-          <button class="button button-primary" type="submit">Guardar contexto</button>
-        </form>
-      </article>
+  <nav class="main-nav" aria-label="Secciones principales">
+    <button type="button" [class.active]="activeTab() === 'operation'" (click)="setTab('operation')"><span>01</span>Operación@if (store.pendingAlerts().length) { <b>{{ store.pendingAlerts().length }}</b> }</button>
+    <button type="button" [class.active]="activeTab() === 'layout'" (click)="setTab('layout')"><span>02</span>Layout</button>
+    <button type="button" [class.active]="activeTab() === 'stt'" (click)="setTab('stt')"><span>03</span>Plan STT</button>
+    <button type="button" [class.active]="activeTab() === 'traceability'" (click)="setTab('traceability')"><span>04</span>Trazabilidad / exportación</button>
+    <div class="nav-tools"><button type="button" (click)="simulateFailure()">Simular caída</button><button type="button" (click)="downloadLayoutCapture()">Captura PNG</button><button type="button" (click)="toggleFullscreen()">{{ isFullscreen ? 'Salir fullscreen' : 'Fullscreen' }}</button><button type="button" (click)="loadDemo()">Cargar demo PRIME</button></div>
+  </nav>
 
-      <article class="panel set-panel">
-        <p class="eyebrow">Configuración</p>
-        <h2>SET {{ store.state().selectedSet }}</h2>
-        <div class="set-selector" aria-label="Seleccionar SET">
-          @for (setNumber of sets; track setNumber) {
-            <button
-              type="button"
-              [class.active]="store.state().selectedSet === setNumber"
-              (click)="store.setSelectedSet(setNumber)"
-            >
-              {{ setNumber }}
-            </button>
-          }
-        </div>
-      </article>
-    </section>
+  @if (notice()) { <div class="global-notice">{{ notice() }}</div> }
 
-    <section class="metrics" aria-label="Resumen operativo">
-      <article class="metric">
-        <span>Operativas</span>
-        <strong>{{ store.operativeCount() }}</strong>
-      </article>
-      <article class="metric metric-danger">
-        <span>Offline</span>
-        <strong>{{ store.offlineCount() }}</strong>
-      </article>
-      <article class="metric">
-        <span>Reserva</span>
-        <strong>{{ store.reserveCount() }}</strong>
-      </article>
-      <article class="metric">
-        <span>Eventos</span>
-        <strong>{{ store.state().operationalEvents.length }}</strong>
-      </article>
-    </section>
-
-    <section class="workspace-grid">
-      <div class="layout-column">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Spread operativo</p>
-            <h2>Layout de bombas</h2>
-          </div>
-          <p>
-            {{ store.state().stageContext.pad }} · Pozo
-            {{ store.state().stageContext.well }} · Etapa
-            {{ store.state().stageContext.stage }}
-          </p>
-        </div>
-
-        <div class="manifold-grid">
-          @for (manifold of store.state().manifolds; track manifold.id) {
-            <article
-              class="panel manifold"
-              [class.manifold-clean]="manifold.type === 'clean'"
-              [class.manifold-dirty]="manifold.type === 'dirty'"
-            >
-              <div class="manifold-heading">
-                <div>
-                  <p class="eyebrow">
-                    {{ manifold.type === 'clean' ? 'Circuito LIMPIO' : 'Circuito SUCIO' }}
-                  </p>
-                  <h3>{{ manifold.label }}</h3>
-                </div>
-                <span class="line-chip">
-                  {{ manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO' }}
-                </span>
-              </div>
-
-              <div class="pump-list">
-                @for (pump of pumpsForManifold(manifold); track pump.id) {
-                  <article class="pump-card" [class.offline]="pump.status === 'offline'">
-                    <div class="pump-identity">
-                      <span class="status-dot"></span>
-                      <div>
-                        <strong>{{ pump.sap }}</strong>
-                        <small>Posición {{ pump.position }} · {{ pump.side }}</small>
-                      </div>
-                    </div>
-
-                    <div class="pump-action">
-                      <span>{{ pump.status === 'operative' ? 'OPERATIVA' : 'OFFLINE' }}</span>
-                      @if (pump.status === 'operative') {
-                        <button type="button" (click)="store.markPumpOffline(pump.id)">
-                          Marcar caída
-                        </button>
-                      } @else {
-                        <button type="button" (click)="store.restorePump(pump.id)">
-                          Restaurar
-                        </button>
-                      }
-                    </div>
-
-                    @if (pump.offlineReason) {
-                      <p class="offline-reason">{{ pump.offlineReason }}</p>
-                    }
-                  </article>
-                }
-              </div>
-            </article>
-          }
-        </div>
-
-        <article class="panel reserve-panel">
-          <div class="manifold-heading">
-            <div>
-              <p class="eyebrow">Fuera del SET</p>
-              <h3>Bombas de reserva</h3>
-            </div>
-          </div>
-          <div class="pump-list">
-            @for (pump of reservePumps(); track pump.id) {
-              <article class="pump-card">
-                <div class="pump-identity">
-                  <span class="status-dot"></span>
-                  <div>
-                    <strong>{{ pump.sap }}</strong>
-                    <small>Disponible para reemplazo</small>
-                  </div>
-                </div>
-                <span class="status-pill status-online">LISTA</span>
-              </article>
-            }
-          </div>
-        </article>
-      </div>
-
-      <aside class="maintenance-column">
-        <article class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Entre etapas</p>
-              <h2>Plan de mantenimiento</h2>
-            </div>
-            <span class="count-pill">{{ store.state().maintenanceTasks.length }}</span>
-          </div>
-
-          <div class="task-list">
-            @for (task of store.state().maintenanceTasks; track task.id) {
-              <label class="task-card" [class.completed]="task.status === 'completed'">
-                <input
-                  type="checkbox"
-                  [checked]="task.status === 'completed'"
-                  (change)="store.toggleTask(task.id)"
-                />
-                <div>
-                  <span>{{ task.department }} · {{ task.pumpSap }}</span>
-                  <p>{{ task.action }}</p>
-                </div>
-              </label>
-            } @empty {
-              <p class="empty-state">
-                No hay tareas. Usa “Simular caída” para probar el flujo
-                alerta → recomendación → mantenimiento.
-              </p>
-            }
-          </div>
-        </article>
-
-        <article class="panel alert-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Historial local</p>
-              <h2>Alertas operativas</h2>
-            </div>
-          </div>
-
-          <div class="event-list">
-            @for (event of store.state().operationalEvents; track event.id) {
-              <article class="event-card">
-                <div>
-                  <strong>{{ event.pumpSap }} OFFLINE</strong>
-                  <span>{{ event.department }} · {{ event.line }}</span>
-                </div>
-                <p>{{ event.recommendation }}</p>
-                <time [attr.datetime]="event.createdAt">
-                  {{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}
-                </time>
-              </article>
-            } @empty {
-              <p class="empty-state">Sin alertas registradas.</p>
-            }
-          </div>
-        </article>
-      </aside>
-    </section>
+  <main class="workspace">
+    @switch (activeTab()) {
+      @case ('operation') { <app-operation /> }
+      @case ('layout') { <app-layout /> }
+      @case ('stt') { <app-stt-plan /> }
+      @case ('traceability') { <app-traceability /> }
+    }
   </main>
 
-  <footer>
-    <span>LUCTIV: Maintenance APP</span>
-    <span>Desarrollado por Lucas Vuletin</span>
-  </footer>
+  <footer><span>{{ store.state().stage.stageExecutionId }}</span><span>{{ store.state().pumps.length }} bombas · {{ dgbCount() }} DGB · {{ store.state().captures.length }} capturas</span><span>Offline local · Sin conexión productiva</span><span>Desarrollado por Lucas Vuletin</span></footer>
 </div>

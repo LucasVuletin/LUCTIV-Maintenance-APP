@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { LocalMaintenanceRepository } from './core/services/local-maintenance.repository';
+import { MAINTENANCE_REPOSITORY } from './core/services/maintenance-repository';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [{ provide: MAINTENANCE_REPOSITORY, useClass: LocalMaintenanceRepository }],
     }).compileComponents();
   });
 

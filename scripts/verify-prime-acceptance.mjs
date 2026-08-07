@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import ExcelJS from 'exceljs';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const contract = JSON.parse(await readFile(join(root, 'src', 'app', 'prime', 'generated', 'prime.generated.json'), 'utf8'));
+const rows = contract.exampleRows;
+const byPump = Object.fromEntries(rows.map((row) => [String(row.PumpId), row]));
+assert.deepEqual(Object.keys(byPump).sort(), ['1951', '2230', '2268', '4896', '6672', '7720', '8340', '9800']);
+assert.equal(byPump['6672'].ConditionClass, 'Healthy / Available');
+assert.equal(byPump['2268'].ReplacementPumpId, '2230');
+assert.equal(byPump['2268'].CaseId, byPump['2230'].CaseId);
+assert.equal(byPump['8340'].STTReadiness, 'Exceeds STT window');
+assert.ok(Number(byPump['8340'].MinutesToRecovery) > 15);
+const selected = rows.filter((row) => row.PartOfPlan === 'Yes').map((row) => String(row.PumpId)).sort();
+assert.deepEqual(selected, ['1951', '2230', '2268']);
+const outside = ['8340', '7720', '4896', '9800'];
+assert.ok(outside.every((pumpId) => byPump[pumpId].PartOfPlan === 'No'));
+
+const workbookPath = join(root, 'artifacts', 'LUCTIV_LAJE_SET5_W106_S51_sample.xlsx');
+const workbook = new ExcelJS.Workbook();
+await workbook.xlsx.readFile(workbookPath);
+assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ['Stage_Failure_Summary', 'Pump_Stage_Log']);
+const log = workbook.getWorksheet('Pump_Stage_Log');
+const headers = log.getRow(1).values.slice(1);
+assert.equal(headers.length, 52);
+assert.deepEqual(headers, contract.headers);
+assert.equal(log.rowCount - 1, 8);
+console.log('PRIME acceptance verified: 8 pumps; selected 2268/1951/2230; backlog retained; 8340 exceeds 15 min; XLSX has 2 sheets and 52 ordered headers.');
