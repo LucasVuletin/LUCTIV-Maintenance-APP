@@ -14,13 +14,14 @@ La base funcional ya incluye:
 
 - Angular standalone con TypeScript estricto.
 - Identidad `LUCTIV: Maintenance APP`.
-- Contexto PAD, pozo, etapa y SET.
+- Contexto PAD, pozo y etapa con layouts independientes por SET.
 - Layout inicial de circuitos LIMPIO y SUCIO.
 - Bombas operativas, offline y de reserva.
-- Simulación del flujo caída → alerta → recomendación → tarea.
-- Plan de mantenimiento PE/IEM.
-- Persistencia mediante `localStorage`.
-- Exportación del estado actual como JSON.
+- Flujo correlacionado caída → reserva → decisión → reemplazo → MTTO.
+- Historial inmutable con PAD, pozo, etapa, SET y marcas de tiempo.
+- Persistencia versionada y validada mediante `localStorage`.
+- Migración automática del estado Angular v1 al schema v2.
+- Exportación e importación del estado completo como backup JSON.
 - Diseño responsive para escritorio y tablet.
 
 El alcance de migración completo está en

@@ -48,12 +48,14 @@ está en `SOURCE_OF_TRUTH.md`.
 - Contexto PAD/pozo/etapa y selector de SET.
 - Modelos de dominio tipados.
 - Store basado en signals e injectable service.
-- Persistencia versionada en `localStorage`.
-- Manifolds LIMPIO y SUCIO con bombas y banco de reserva.
-- Simulación de una caída operativa.
-- Generación automática de alerta, recomendación y tarea PE/IEM.
-- Cierre visual de tareas.
-- Exportación JSON del snapshot actual.
+- Persistencia versionada en `localStorage`, validación de invariantes y migración v1 → v2.
+- Configuraciones independientes por SET con manifolds LIMPIO/SUCIO y banco de reserva.
+- Caída operativa con reserva exclusiva para evitar recomendaciones duplicadas.
+- Decisión registrada: reemplazo ejecutado o imposibilidad justificada.
+- Movimiento atómico Sale/Entra/MTTO y tarea PE/IEM vinculada al evento.
+- Cierre de MTTO con rehabilitación de la bomba y marcas de tiempo correlacionadas.
+- Historial inmutable con snapshot de PAD, pozo, etapa y SET.
+- Exportación e importación JSON del snapshot validado.
 
 ## Backlog de migración
 

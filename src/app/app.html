@@ -3,16 +3,18 @@
     <div>
       <p class="eyebrow">Operations & maintenance control</p>
       <h1>LUCTIV<span>:</span> Maintenance APP</h1>
-      <p class="subtitle">Angular / TypeScript · Versión inicial 2026</p>
+      <p class="subtitle">Estado correlacionado · Operación offline · Schema v2</p>
     </div>
 
     <div class="header-actions">
-      <button class="button button-warning" type="button" (click)="store.simulateFailure()">
+      <button class="button button-warning" type="button" (click)="simulateFailure()">
         Simular caída
       </button>
-      <button class="button" type="button" (click)="store.exportSnapshot()">
-        Exportar snapshot
-      </button>
+      <button class="button" type="button" (click)="store.exportSnapshot()">Exportar backup</button>
+      <label class="button file-button">
+        Importar backup
+        <input type="file" accept="application/json,.json" (change)="importSnapshot($event)" />
+      </label>
       <button class="button button-ghost" type="button" (click)="resetWorkspace()">
         Restablecer
       </button>
@@ -20,6 +22,12 @@
   </header>
 
   <main>
+    @if (store.actionError()) {
+      <p class="operation-notice operation-error" role="alert">{{ store.actionError() }}</p>
+    } @else if (actionNotice) {
+      <p class="operation-notice operation-success" role="status">{{ actionNotice }}</p>
+    }
+
     <section class="context-grid" aria-label="Contexto de etapa">
       <article class="panel context-panel">
         <div class="panel-heading">
@@ -27,35 +35,42 @@
             <p class="eyebrow">Trabajo activo</p>
             <h2>PAD, pozo y etapa</h2>
           </div>
-          <span class="status-pill status-online">Persistencia local</span>
+          <span
+            class="status-pill"
+            [class.status-online]="!store.persistenceError()"
+            [class.status-error]="store.persistenceError()"
+          >
+            {{ store.persistenceError() ? 'CAMBIOS SIN GUARDAR' : 'GUARDADO LOCAL' }}
+          </span>
         </div>
 
         <form class="stage-form" (ngSubmit)="saveStage()">
           <label>
             <span>PAD</span>
-            <input name="pad" [(ngModel)]="stageDraft.pad" autocomplete="off" />
+            <input name="pad" [(ngModel)]="stageDraft.pad" autocomplete="off" required />
           </label>
           <label>
             <span>Pozo</span>
-            <input name="well" [(ngModel)]="stageDraft.well" autocomplete="off" />
+            <input name="well" [(ngModel)]="stageDraft.well" autocomplete="off" required />
           </label>
           <label>
             <span>Etapa</span>
-            <input name="stage" [(ngModel)]="stageDraft.stage" autocomplete="off" />
+            <input name="stage" [(ngModel)]="stageDraft.stage" autocomplete="off" required />
           </label>
           <button class="button button-primary" type="submit">Guardar contexto</button>
         </form>
       </article>
 
       <article class="panel set-panel">
-        <p class="eyebrow">Configuración</p>
+        <p class="eyebrow">Configuración independiente</p>
         <h2>SET {{ store.state().selectedSet }}</h2>
         <div class="set-selector" aria-label="Seleccionar SET">
           @for (setNumber of sets; track setNumber) {
             <button
               type="button"
               [class.active]="store.state().selectedSet === setNumber"
-              (click)="store.setSelectedSet(setNumber)"
+              [attr.aria-pressed]="store.state().selectedSet === setNumber"
+              (click)="selectSet(setNumber)"
             >
               {{ setNumber }}
             </button>
@@ -64,22 +79,22 @@
       </article>
     </section>
 
-    <section class="metrics" aria-label="Resumen operativo">
+    <section class="metrics" aria-label="Resumen operativo del SET activo">
       <article class="metric">
-        <span>Operativas</span>
+        <span>Operativas en SET</span>
         <strong>{{ store.operativeCount() }}</strong>
       </article>
       <article class="metric metric-danger">
-        <span>Offline</span>
+        <span>Offline en SET</span>
         <strong>{{ store.offlineCount() }}</strong>
       </article>
       <article class="metric">
-        <span>Reserva</span>
-        <strong>{{ store.reserveCount() }}</strong>
+        <span>Reservas disponibles</span>
+        <strong>{{ store.availableReserveCount() }}/{{ store.reserveCount() }}</strong>
       </article>
       <article class="metric">
-        <span>Eventos</span>
-        <strong>{{ store.state().operationalEvents.length }}</strong>
+        <span>Eventos del SET</span>
+        <strong>{{ store.currentEvents().length }}</strong>
       </article>
     </section>
 
@@ -87,18 +102,18 @@
       <div class="layout-column">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Spread operativo</p>
+            <p class="eyebrow">Spread operativo · SET {{ store.state().selectedSet }}</p>
             <h2>Layout de bombas</h2>
           </div>
           <p>
-            {{ store.state().stageContext.pad }} · Pozo
-            {{ store.state().stageContext.well }} · Etapa
+            {{ store.state().stageContext.pad }} · Pozo {{ store.state().stageContext.well }} ·
+            Etapa
             {{ store.state().stageContext.stage }}
           </p>
         </div>
 
         <div class="manifold-grid">
-          @for (manifold of store.state().manifolds; track manifold.id) {
+          @for (manifold of store.currentManifolds(); track manifold.id) {
             <article
               class="panel manifold"
               [class.manifold-clean]="manifold.type === 'clean'"
@@ -120,7 +135,7 @@
                 @for (pump of pumpsForManifold(manifold); track pump.id) {
                   <article class="pump-card" [class.offline]="pump.status === 'offline'">
                     <div class="pump-identity">
-                      <span class="status-dot"></span>
+                      <span class="status-dot" aria-hidden="true"></span>
                       <div>
                         <strong>{{ pump.sap }}</strong>
                         <small>Posición {{ pump.position }} · {{ pump.side }}</small>
@@ -130,20 +145,30 @@
                     <div class="pump-action">
                       <span>{{ pump.status === 'operative' ? 'OPERATIVA' : 'OFFLINE' }}</span>
                       @if (pump.status === 'operative') {
-                        <button type="button" (click)="store.markPumpOffline(pump.id)">
-                          Marcar caída
-                        </button>
+                        <button type="button" (click)="reportFailure(pump)">Registrar caída</button>
                       } @else {
-                        <button type="button" (click)="store.restorePump(pump.id)">
-                          Restaurar
-                        </button>
+                        <span class="workflow-label">RESOLVER ALERTA / MTTO</span>
                       }
                     </div>
 
+                    @if (pump.movement) {
+                      <p class="movement-note">
+                        {{
+                          pump.movement === 'entering'
+                            ? 'ENTRA'
+                            : pump.movement === 'leaving'
+                              ? 'SALE'
+                              : 'MTTO'
+                        }}
+                        · {{ pump.movementComment }}
+                      </p>
+                    }
                     @if (pump.offlineReason) {
                       <p class="offline-reason">{{ pump.offlineReason }}</p>
                     }
                   </article>
+                } @empty {
+                  <p class="empty-state">Este manifold todavía no tiene bombas asignadas.</p>
                 }
               </div>
             </article>
@@ -153,55 +178,159 @@
         <article class="panel reserve-panel">
           <div class="manifold-heading">
             <div>
-              <p class="eyebrow">Fuera del SET</p>
-              <h3>Bombas de reserva</h3>
+              <p class="eyebrow">Fuera del SET {{ store.state().selectedSet }}</p>
+              <h3>Banco de reserva</h3>
             </div>
+            <span class="count-pill"> {{ store.availableReserveCount() }} disponibles </span>
           </div>
           <div class="pump-list">
             @for (pump of reservePumps(); track pump.id) {
-              <article class="pump-card">
+              <article class="pump-card" [class.offline]="pump.status === 'offline'">
                 <div class="pump-identity">
-                  <span class="status-dot"></span>
+                  <span class="status-dot" aria-hidden="true"></span>
                   <div>
                     <strong>{{ pump.sap }}</strong>
-                    <small>Disponible para reemplazo</small>
+                    <small>
+                      @if (pump.reservedForEventId) {
+                        Reservada para una alerta pendiente
+                      } @else if (pump.status === 'offline') {
+                        En mantenimiento
+                      } @else {
+                        Disponible para reemplazo
+                      }
+                    </small>
                   </div>
                 </div>
-                <span class="status-pill status-online">LISTA</span>
+                <span
+                  class="status-pill"
+                  [class.status-online]="pump.status === 'operative' && !pump.reservedForEventId"
+                  [class.status-reserved]="pump.reservedForEventId"
+                  [class.status-error]="pump.status === 'offline'"
+                >
+                  {{
+                    pump.reservedForEventId
+                      ? 'RESERVADA'
+                      : pump.status === 'offline'
+                        ? 'MTTO'
+                        : 'LISTA'
+                  }}
+                </span>
+                @if (pump.movementComment) {
+                  <p class="movement-note">{{ pump.movementComment }}</p>
+                }
               </article>
+            } @empty {
+              <p class="empty-state">No hay bombas en el banco de reserva.</p>
             }
           </div>
         </article>
       </div>
 
       <aside class="maintenance-column">
+        @if (store.pendingEvents().length > 0) {
+          <article class="panel decision-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Acción requerida</p>
+                <h2>Decisiones pendientes</h2>
+              </div>
+              <span class="count-pill">{{ store.pendingEvents().length }}</span>
+            </div>
+
+            <div class="event-list">
+              @for (event of store.pendingEvents(); track event.id) {
+                <section class="decision-card" [attr.aria-label]="'Alerta de ' + event.pumpSap">
+                  <div class="decision-heading">
+                    <div>
+                      <strong>{{ event.pumpSap }} OFFLINE</strong>
+                      <span
+                        >{{ event.department }} · {{ event.line }} · Pos. {{ event.position }}</span
+                      >
+                    </div>
+                    <span class="status-pill status-error">PENDIENTE</span>
+                  </div>
+                  <p class="decision-reason">{{ event.reason }}</p>
+                  <p>{{ event.recommendation }}</p>
+
+                  <label class="decision-field">
+                    <span>Reserva para ejecutar el cambio</span>
+                    <select
+                      [ngModel]="selectedReplacementId(event)"
+                      (ngModelChange)="setReplacementSelection(event.id, $event)"
+                    >
+                      <option value="">Sin reserva seleccionada</option>
+                      @for (pump of store.availableReplacementPumps(event); track pump.id) {
+                        <option [value]="pump.id">{{ pump.sap }}</option>
+                      }
+                    </select>
+                  </label>
+
+                  <label class="decision-field">
+                    <span>Comentario de la decisión</span>
+                    <textarea
+                      rows="3"
+                      [ngModel]="responseComment(event.id)"
+                      (ngModelChange)="setResponseComment(event.id, $event)"
+                      placeholder="Confirmación o motivo por el que no puede realizarse"
+                    ></textarea>
+                  </label>
+
+                  <div class="decision-actions">
+                    <button
+                      class="button button-primary"
+                      type="button"
+                      [disabled]="store.availableReplacementPumps(event).length === 0"
+                      (click)="confirmReplacement(event)"
+                    >
+                      Ejecutar reemplazo
+                    </button>
+                    <button
+                      class="button button-ghost"
+                      type="button"
+                      (click)="rejectReplacement(event)"
+                    >
+                      No se puede realizar
+                    </button>
+                  </div>
+                </section>
+              }
+            </div>
+          </article>
+        }
+
         <article class="panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Entre etapas</p>
+              <p class="eyebrow">Entre etapas · SET {{ store.state().selectedSet }}</p>
               <h2>Plan de mantenimiento</h2>
             </div>
-            <span class="count-pill">{{ store.state().maintenanceTasks.length }}</span>
+            <span class="count-pill">{{ store.currentTasks().length }}</span>
           </div>
 
           <div class="task-list">
-            @for (task of store.state().maintenanceTasks; track task.id) {
-              <label class="task-card" [class.completed]="task.status === 'completed'">
+            @for (task of store.currentTasks(); track task.id) {
+              <article class="task-card" [class.completed]="task.status === 'completed'">
                 <input
                   type="checkbox"
                   [checked]="task.status === 'completed'"
-                  (change)="store.toggleTask(task.id)"
+                  [disabled]="task.status === 'completed'"
+                  [attr.aria-label]="'Completar mantenimiento de ' + task.pumpSap"
+                  (change)="completeTask(task.id)"
                 />
                 <div>
                   <span>{{ task.department }} · {{ task.pumpSap }}</span>
                   <p>{{ task.action }}</p>
+                  <small>
+                    {{ task.stageContext.pad }} · Pozo {{ task.stageContext.well }} · Etapa
+                    {{ task.stageContext.stage }}
+                    @if (task.completedAt) {
+                      · Cerrada {{ task.completedAt | date: 'dd/MM/yyyy HH:mm' }}
+                    }
+                  </small>
                 </div>
-              </label>
+              </article>
             } @empty {
-              <p class="empty-state">
-                No hay tareas. Usa “Simular caída” para probar el flujo
-                alerta → recomendación → mantenimiento.
-              </p>
+              <p class="empty-state">No hay tareas pendientes ni completadas para este SET.</p>
             }
           </div>
         </article>
@@ -209,25 +338,46 @@
         <article class="panel alert-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Historial local</p>
-              <h2>Alertas operativas</h2>
+              <p class="eyebrow">Historial inmutable · SET {{ store.state().selectedSet }}</p>
+              <h2>Eventos operativos</h2>
             </div>
           </div>
 
           <div class="event-list">
-            @for (event of store.state().operationalEvents; track event.id) {
-              <article class="event-card">
+            @for (event of store.currentEvents(); track event.id) {
+              <article class="event-card" [class.event-resolved]="event.decision !== 'pending'">
                 <div>
                   <strong>{{ event.pumpSap }} OFFLINE</strong>
                   <span>{{ event.department }} · {{ event.line }}</span>
                 </div>
+                <p><strong>Motivo:</strong> {{ event.reason }}</p>
                 <p>{{ event.recommendation }}</p>
+                @if (event.decision !== 'pending') {
+                  <p>
+                    <strong>Decisión:</strong>
+                    {{ event.decision === 'replaced' ? 'REEMPLAZADO' : 'NO SE PUEDE' }}
+                    @if (event.replacementPumpSap) {
+                      · {{ event.replacementPumpSap }}
+                    }
+                  </p>
+                  <p><strong>Respuesta:</strong> {{ event.responseComment }}</p>
+                }
+                <small>
+                  {{ event.stageContext.pad }} · Pozo {{ event.stageContext.well }} · Etapa
+                  {{ event.stageContext.stage }} · SET {{ event.setNumber }}
+                </small>
                 <time [attr.datetime]="event.createdAt">
-                  {{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                  Creada {{ event.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                  @if (event.respondedAt) {
+                    · Respondida {{ event.respondedAt | date: 'dd/MM/yyyy HH:mm' }}
+                  }
+                  @if (event.restoredAt) {
+                    · Equipo habilitado {{ event.restoredAt | date: 'dd/MM/yyyy HH:mm' }}
+                  }
                 </time>
               </article>
             } @empty {
-              <p class="empty-state">Sin alertas registradas.</p>
+              <p class="empty-state">Sin eventos registrados para este SET.</p>
             }
           </div>
         </article>

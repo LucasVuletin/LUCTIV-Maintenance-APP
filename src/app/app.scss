@@ -102,6 +102,36 @@ h3 {
   background: rgba(127, 179, 200, 0.18);
 }
 
+.button:focus-visible,
+.set-selector button:focus-visible,
+.pump-action button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(158, 243, 215, 0.72);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
 .button-primary {
   border-color: rgba(76, 193, 159, 0.45);
   background: rgba(76, 193, 159, 0.16);
@@ -124,6 +154,27 @@ main,
 footer {
   max-width: 1600px;
   margin-inline: auto;
+}
+
+.operation-notice {
+  margin-bottom: 1rem;
+  border: 1px solid;
+  border-radius: 0.9rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.operation-error {
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(91, 23, 26, 0.35);
+  color: #ffd7d7;
+}
+
+.operation-success {
+  border-color: rgba(76, 193, 159, 0.35);
+  background: rgba(76, 193, 159, 0.1);
+  color: #bff7e5;
 }
 
 .context-grid {
@@ -168,7 +219,9 @@ footer {
   text-transform: uppercase;
 }
 
-input {
+input,
+select,
+textarea {
   min-height: 2.8rem;
   width: 100%;
   border: 1px solid rgba(129, 154, 181, 0.22);
@@ -181,9 +234,15 @@ input {
   font-weight: 700;
 }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: rgba(127, 179, 200, 0.72);
   box-shadow: 0 0 0 3px rgba(127, 179, 200, 0.12);
+}
+
+textarea {
+  resize: vertical;
 }
 
 .set-selector {
@@ -224,6 +283,18 @@ input:focus {
   border: 1px solid rgba(76, 193, 159, 0.3);
   background: rgba(76, 193, 159, 0.1);
   color: #9ef3d7;
+}
+
+.status-error {
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.1);
+  color: #ffb5b5;
+}
+
+.status-reserved {
+  border: 1px solid rgba(246, 185, 59, 0.38);
+  background: rgba(246, 185, 59, 0.12);
+  color: #ffe6aa;
 }
 
 .metrics {
@@ -389,6 +460,18 @@ input:focus {
   font-size: 0.82rem;
 }
 
+.movement-note {
+  flex-basis: 100%;
+  color: #b9c9d8;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.workflow-label {
+  color: #ffb5b5 !important;
+  font-size: 0.6rem !important;
+}
+
 .reserve-panel {
   border-color: rgba(76, 193, 159, 0.22);
 }
@@ -429,6 +512,14 @@ input:focus {
   line-height: 1.45;
 }
 
+.task-card small {
+  display: block;
+  margin-top: 0.45rem;
+  color: #7f92a6;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
 .task-card.completed {
   opacity: 0.55;
 }
@@ -439,6 +530,67 @@ input:focus {
 
 .alert-panel {
   border-color: rgba(255, 99, 99, 0.22);
+}
+
+.decision-panel {
+  border-color: rgba(246, 185, 59, 0.28);
+}
+
+.decision-card {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid rgba(246, 185, 59, 0.28);
+  border-radius: 1rem;
+  background: rgba(62, 43, 12, 0.24);
+  padding: 1rem;
+}
+
+.decision-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.decision-heading strong,
+.decision-heading span {
+  display: block;
+}
+
+.decision-heading div > span {
+  margin-top: 0.25rem;
+  color: #a8bacb;
+  font-size: 0.7rem;
+}
+
+.decision-card > p {
+  color: #d7e3ec;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.decision-reason {
+  color: #ffb5b5 !important;
+  font-weight: 800;
+}
+
+.decision-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.decision-field > span {
+  color: #a8bacb;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.decision-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
 }
 
 .event-card {
@@ -465,6 +617,19 @@ input:focus {
   color: #ffd7d7;
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.event-card small {
+  display: block;
+  margin-top: 0.55rem;
+  color: #a8bacb;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.event-resolved {
+  border-left-color: #4cc19f;
+  background: rgba(25, 73, 61, 0.2);
 }
 
 .event-card time {
@@ -498,6 +663,17 @@ footer {
   }
 }
 
+@media (max-width: 1300px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 0.75rem;
@@ -513,6 +689,10 @@ footer {
   .header-actions,
   .button {
     width: 100%;
+  }
+
+  .decision-actions {
+    grid-template-columns: 1fr;
   }
 
   .stage-form,
