@@ -1,4 +1,4 @@
-import { FailureCase, Manifold, OperationalCapture, PrimeMaintenanceState, Pump, PumpStageLogRow, SetNumber } from '../models/prime.models';
+import { FailureCase, Manifold, OperationalCapture, PrimeMaintenanceState, Pump, PumpDynamicStatus, PumpStageLogRow, SetNumber } from '../models/prime.models';
 import { findFailureRule } from '../../prime/failure-rules';
 import { PRIME_EXAMPLE_ROWS } from '../../prime/generated/prime.generated';
 
@@ -19,6 +19,17 @@ function isoValue(row: Record<string, unknown>, field: string): string | null {
   return value ? new Date(value).toISOString() : null;
 }
 
+function dynamicStatus(row: Record<string, unknown>, side: Pump['side']): PumpDynamicStatus {
+  const currentStatus = stringValue(row, 'CurrentStatus');
+  const conditionClass = stringValue(row, 'ConditionClass');
+  if (currentStatus === 'In Maintenance') return 'maintenance';
+  if (conditionClass === 'Broken') return 'down';
+  if (['Almost / Consumable', 'Operational condition'].includes(conditionClass)) return 'warning';
+  if (currentStatus.includes('Not Working')) return 'offline';
+  if (currentStatus === 'Ready' || side === 'bench') return 'available';
+  return 'running';
+}
+
 function parsePosition(position: string): { side: Pump['side']; position: number } {
   if (position === 'Off set') return { side: 'bench', position: 1 };
   const [side, slot] = position.split('-');
@@ -35,6 +46,7 @@ function createPumps(rows: readonly Record<string, unknown>[], manifolds: readon
       id: `pump-${stringValue(row, 'PumpId')}`,
       sap: stringValue(row, 'PumpId').padStart(4, '0'),
       pumpType: stringValue(row, 'PumpType'),
+      pumpModel: stringValue(row, 'PumpType').toUpperCase().includes('Q10') ? 'Q10' : 'HT200',
       side: parsedPosition.side,
       manifoldId: manifold?.id ?? null,
       row: position - 1,
@@ -42,6 +54,10 @@ function createPumps(rows: readonly Record<string, unknown>[], manifolds: readon
       position,
       actuatorNumber: stringValue(row, 'ActuatorNumber'),
       isDgb: stringValue(row, 'DGB_Bifuel') === 'Yes',
+      dgbSubstitutionPercentage: 0,
+      dgbSubstitutionError: '',
+      supervisorComment: '',
+      dynamicStatus: dynamicStatus(row, parsedPosition.side),
       signals: { p: 1, d: 1, s: 1 },
       currentStatus: stringValue(row, 'CurrentStatus'),
       conditionClass: stringValue(row, 'ConditionClass'),
@@ -100,6 +116,7 @@ function createCases(rows: readonly Record<string, unknown>[], stageExecutionId:
       ruleId: rule?.RuleId ?? null,
       ruleStatus: rule?.RuleStatus === 'Source example' ? 'Source example' : 'Draft - technical validation required',
       technicalValidationConfirmedAt: null,
+      queueClearedAt: null,
     };
   });
 }
@@ -127,12 +144,15 @@ export function createPrimeDemoState(): PrimeMaintenanceState {
     schemaVersion: 3,
     stage: {
       stageExecutionId,
+      mode: 'zipperfrac',
       pad: stringValue(first, 'Pad'),
       setId: numberValue(first, 'SetId') as SetNumber,
       spreadIdentifier: stringValue(first, 'SpreadIdentifier'),
       crewName: stringValue(first, 'CrewName'),
       well: stringValue(first, 'Well'),
       stage: numberValue(first, 'Stage') ?? 0,
+      secondaryWell: '',
+      secondaryStage: null,
       capturedBy: stringValue(first, 'CapturedBy'),
       exportedBy: stringValue(first, 'CapturedBy'),
       targetMinutes: 15,

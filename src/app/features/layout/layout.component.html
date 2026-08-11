@@ -1,34 +1,80 @@
-<section class="layout-intro"><div><span>CONFIGURACIÓN FÍSICA</span><h2>Layout de bombas y manifolds</h2><p>Arrastra bombas entre slots y banco de reserva. Los circuitos LIMPIO y SUCIO mantienen su identificación de campo.</p></div><div class="legend"><b class="clean">LIMPIO</b><b class="dirty">SUCIO</b><b class="offline">NO DISPONIBLE</b></div></section>
-
-@for (manifold of store.state().manifolds; track manifold.id) {
-  <section class="manifold" [class.clean-manifold]="manifold.type === 'clean'" [class.dirty-manifold]="manifold.type === 'dirty'">
-    <header><div><span>{{ manifold.type === 'clean' ? 'CIRCUITO LIMPIO' : 'CIRCUITO SUCIO' }}</span><h3>{{ manifold.label }}</h3></div><label><span>Slots por lado</span><input type="number" min="1" max="12" [(ngModel)]="manifold.pumpsPerSide" (change)="saveManifold(manifold)" /></label></header>
-    <div class="manifold-grid">
-      <div class="slot-column">
-        @for (position of positions(manifold.pumpsPerSide); track position) {
-          <ng-container [ngTemplateOutlet]="slot" [ngTemplateOutletContext]="{ manifold: manifold, side: 'left', position: position }" />
-        }
-      </div>
-      <div class="spine"><strong>{{ manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO' }}</strong></div>
-      <div class="slot-column">
-        @for (position of positions(manifold.pumpsPerSide); track position) {
-          <ng-container [ngTemplateOutlet]="slot" [ngTemplateOutletContext]="{ manifold: manifold, side: 'right', position: position }" />
-        }
-      </div>
-    </div>
-  </section>
-}
-
-<section class="bench" (dragover)="$event.preventDefault()" (drop)="dropBench($event)"><header><div><span>FUERA DEL SET / SPARES</span><h2>Banco de reserva</h2></div><b>{{ benchCount() }} unidades</b></header><div class="bench-grid">
-  @for (pump of store.state().pumps; track pump.id) { @if (pump.side === 'bench') { <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: pump }" /> } }
-</div></section>
-
-<ng-template #slot let-manifold="manifold" let-side="side" let-position="position">
-  <div class="slot" (dragover)="$event.preventDefault()" (drop)="drop({ manifoldId: manifold.id, side: side, position: position }, $event)">
-    @if (slotPump({ manifoldId: manifold.id, side: side, position: position }); as pump) { <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: pump }" /> }
-    @else { <span class="empty-slot">{{ side === 'left' ? 'L' : 'R' }}-{{ position }}</span> }
-    <label class="actuator"><span>ACT</span><input [ngModel]="actuator({ manifoldId: manifold.id, side: side, position: position })" (ngModelChange)="store.setActuator({ manifoldId: manifold.id, side: side, position: position }, $event)" maxlength="3" /></label>
+<div class="layout-dashboard">
+<section class="layout-primary">
+<section class="spread-toolbar">
+  <div>
+    <span class="eyebrow">PUMP SPREAD VIEW</span>
+    <h2>Layout operativo de bombas</h2>
+    <p>Arrastrá unidades entre el spread y Fuera del SET. Los cambios se guardan en el estado offline existente.</p>
   </div>
-</ng-template>
+</section>
 
-<ng-template #pumpCard let-pump="pump"><article class="pump-card" draggable="true" (dragstart)="beginDrag(pump.id, $event)" [class.pump-down]="pump.conditionClass === 'Broken' || pump.conditionClass === 'Under diagnosis'" [class.pump-warning]="pump.conditionClass === 'Almost / Consumable'"><div><span>PUMP</span><strong>{{ pump.sap }}</strong></div><b>{{ pump.currentStatus }}</b><small>{{ pump.conditionClass }}</small><div class="signals"><span>P {{ pump.signals.p }}</span><span>D {{ pump.signals.d }}</span><span>S {{ pump.signals.s }}</span></div></article></ng-template>
+<section class="status-foundation" aria-label="Referencia de estados">
+  <span><i data-status="running"></i>En marcha</span>
+  <span><i data-status="available"></i>Disponible</span>
+  <span><i data-status="warning"></i>Alerta</span>
+  <span><i data-status="down"></i>Fuera de servicio</span>
+  <span><i data-status="maintenance"></i>MTTO</span>
+  <span><i data-status="offline"></i>Offline</span>
+  <div class="data-view-switch" role="group" aria-label="Datos visibles de bombas"><button type="button" [class.active]="dataView() === 'operation'" (click)="dataView.set('operation')">Caudal / Cambio / RPM</button><button type="button" [class.active]="dataView() === 'hours'" (click)="dataView.set('hours')">P / D / S</button></div>
+</section>
+
+<section class="spread-list">
+  @for (layout of spreadLayouts(); track layout.manifoldId) {
+    <article class="spread-panel">
+      <app-pump-spread-layout [layout]="layout" [dataView]="dataView()" [selectedPumpId]="selectedPumpId()" (pumpSelected)="openPumpDetails($event)" (pumpDropped)="movePump($event)" (connectorChanged)="updateConnector($event)" (statusChanged)="updatePumpStatus($event)" (commentChanged)="updatePumpComment($event)" (emptySlotSelected)="openSlotAdd($event)" />
+    </article>
+  }
+</section>
+
+<section class="reserve-bench" (dragover)="$event.preventDefault()" (drop)="dropOnBench($event)">
+  <header><div><span>FUERA DEL SET</span><h3>Unidades disponibles y en MTTO</h3></div><b>{{ benchPumps().length }} bombas</b></header>
+  <div class="reserve-grid">
+    @for (pump of benchPumps(); track pump.id) {
+      <button type="button" class="reserve-pump" draggable="true" [attr.data-status]="statusForPump(pump)" [class.selected]="selectedPumpId() === pump.sap" (dragstart)="beginBenchDrag(pump, $event)" (click)="openPumpById(pump.sap)">
+        <span class="reserve-pump__number">{{ pump.sap }}</span>
+        <span class="reserve-pump__condition">{{ pump.conditionClass }}</span>
+        <strong>{{ statusLabel(statusForPump(pump)) }}</strong>
+      </button>
+    } @empty {
+      <p class="empty-bench">Arrastrá una bomba aquí para retirarla del SET.</p>
+    }
+  </div>
+</section>
+</section>
+<aside class="layout-sidebar"><section class="telemetry-panel"><header><div><span>DATOS DE BOMBAS</span><strong>{{ telemetryPumps().length }} unidades</strong></div><small>{{ telemetry.lastUpdatedAt() | date:'HH:mm:ss' }}</small></header><div class="telemetry-table-wrap"><table><thead><tr><th><button type="button" (click)="sortTelemetry('position')">P# {{ telemetrySortMarker('position') }}</button></th><th><button type="button" (click)="sortTelemetry('pumpId')">Unidad {{ telemetrySortMarker('pumpId') }}</button></th><th><button type="button" (click)="sortTelemetry('engineLoadPct')">Carga % {{ telemetrySortMarker('engineLoadPct') }}</button></th><th><button type="button" (click)="sortTelemetry('engineRpm')">RPM {{ telemetrySortMarker('engineRpm') }}</button></th><th><button type="button" (click)="sortTelemetry('dischargePressurePsi')">Descarga PSI {{ telemetrySortMarker('dischargePressurePsi') }}</button></th><th><button type="button" (click)="sortTelemetry('rateBpm')">Rate BPM {{ telemetrySortMarker('rateBpm') }}</button></th><th><button type="button" (click)="sortTelemetry('signalStatus')">Estado {{ telemetrySortMarker('signalStatus') }}</button></th></tr></thead><tbody>@for (pump of sortedTelemetryPumps(); track pump.id) { @let current = telemetrySample(pump.sap); <tr [class.selected]="selectedPumpId() === pump.sap" (click)="selectPump(pump.sap)"><td>{{ positionIds()[pump.sap] }}</td><td><b>{{ pump.sap }}</b></td><td>{{ current?.engineLoadPct ?? '—' }}</td><td>{{ current?.engineRpm ?? '—' }}</td><td>{{ current?.dischargePressurePsi ?? '—' }}</td><td>{{ current?.rateBpm ?? '—' }}</td><td><span class="state" [attr.data-state]="telemetryStateClass(current)">{{ telemetryState(current) }}</span></td></tr> }</tbody></table></div><div class="chart-controls"><label>Y<select [ngModel]="telemetryYAxis()" (ngModelChange)="telemetryYAxis.set($event)"><option value="rateBpm">Caudal</option><option value="engineLoadPct">Carga</option><option value="engineRpm">RPM</option><option value="dischargePressurePsi">Descarga</option></select></label></div><div class="chart"><svg viewBox="0 0 580 150" preserveAspectRatio="none">@for (series of telemetrySeries(); track series.pumpId) { <polyline [attr.points]="series.points" [attr.stroke]="series.color" [class.selected]="selectedPumpId() === series.pumpId"/> }</svg></div></section><app-alerts-maintenance-panel [maintenanceStore]="store" [identityJson]="telemetryIdentityJson()"></app-alerts-maintenance-panel></aside>
+</div>
+
+@if (isPumpDetailsOpen()) { @if (selectedPump(); as pump) {
+  <div class="pump-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="pump-dialog-title">
+    <section class="pump-dialog">
+      <header><div><span>PUMP DETAILS</span><h3 id="pump-dialog-title">Bomba {{ pump.sap }}</h3></div><button type="button" class="close-button" aria-label="Cerrar detalle" (click)="closePumpDetails()">×</button></header>
+      <div class="pump-dialog__status" [attr.data-status]="statusForPump(pump)"><i></i><select [ngModel]="statusForPump(pump)" aria-label="Estado dinámico" (ngModelChange)="updateSelectedPumpStatus($event)"><option value="running">EN MARCHA</option><option value="available">DISPONIBLE</option><option value="warning">ALERTA</option><option value="down">FUERA DE SERVICIO</option><option value="maintenance">MTTO</option><option value="offline">OFFLINE</option></select><span>{{ pump.currentStatus }}</span></div>
+      <dl>
+        <div><dt>Ubicación</dt><dd>{{ pump.side === 'bench' ? 'Fuera del SET' : (pump.side === 'left' ? 'Lado arena' : 'Lado químicos') + ' · posición ' + pump.position }}</dd></div>
+        <div><dt>Circuito</dt><dd>{{ pump.connection === 'clean' ? 'LIMPIO' : pump.connection === 'dirty' ? 'SUCIO' : 'Fuera del SET' }}</dd></div>
+        <div><dt>Condición</dt><dd>{{ pump.conditionClass }}</dd></div>
+        <div><dt>Rate</dt><dd>{{ pump.pumpRate ?? 'Sin dato' }} BPM</dd></div>
+        <div><dt>Modelo</dt><dd><select [ngModel]="pump.pumpModel" (ngModelChange)="updateSelectedPumpModel($event)"><option value="HT200">HT200 · 3 columnas PDS</option><option value="Q10">Q10 · 5 columnas PDS</option></select></dd></div>
+      </dl>
+      <section class="dgb-config"><label><input type="checkbox" [ngModel]="pump.isDgb" (ngModelChange)="updateSelectedPumpDgb($event)" /><span>Bifuel / DGB</span></label>@if (pump.isDgb) { <label><span>Sustitución DGB</span><div><input type="number" min="0" max="100" [ngModel]="pump.dgbSubstitutionPercentage" (ngModelChange)="updateSelectedPumpDgbPercentage($event)" /><b>%</b></div></label> }@if (pump.isDgb && pump.dgbSubstitutionPercentage === 0 && !pump.supervisorComment.trim()) { <p>Debe ingresar un comentario para justificar por qué no sustituye.</p> }</section>
+      @if (selectedCase(); as failureCase) {
+        <section class="case-link"><span>{{ failureCase.caseId }}</span><strong>{{ failureCase.failureReason }}</strong><p>{{ failureCase.responsibleGroup }} · {{ failureCase.plannedAction }} · {{ failureCase.workStatus }}</p>@if (failureCase.replacementPumpId) { <small>Reemplazo: {{ failureCase.replacementPumpId }}</small> }</section>
+        <div class="dialog-actions"><button type="button" (click)="decideSelectedCase('include')">Incluir en STT</button><button type="button" (click)="decideSelectedCase('backlog')">Mantener backlog</button></div>
+      }
+      @if (pump.side !== 'bench') { <button type="button" class="bench-action" (click)="moveSelectedToBench()">Mover fuera del SET</button> }
+      <button type="button" class="remove-action" (click)="removeSelectedPump()">Quitar bomba</button>
+      @if (pumpFormError()) { <p class="form-error">{{ pumpFormError() }}</p> }
+    </section>
+  </div>
+} }
+
+@if (isSlotAddOpen()) {
+  <div class="pump-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="slot-add-title">
+    <section class="pump-dialog pump-dialog--small">
+      <header><div><span>NUEVA UNIDAD</span><h3 id="slot-add-title">Agregar bomba en posición</h3></div><button type="button" class="close-button" aria-label="Cerrar" (click)="isSlotAddOpen.set(false)">×</button></header>
+      <label class="add-pump-field"><span>Número de bomba</span><input inputmode="numeric" maxlength="4" [(ngModel)]="slotPumpNumber" (keyup.enter)="addPumpAtSlot()" placeholder="0000" /></label>
+      @if (pumpFormError()) { <p class="form-error">{{ pumpFormError() }}</p> }
+      <button type="button" class="add-pump-submit" (click)="addPumpAtSlot()">Agregar en esta posición</button>
+    </section>
+  </div>
+}

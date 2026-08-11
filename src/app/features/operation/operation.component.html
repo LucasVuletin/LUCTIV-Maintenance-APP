@@ -1,9 +1,7 @@
 <section class="summary-strip" aria-label="Resumen operacional">
-  <article><span>Bombas en spread</span><strong>{{ store.state().pumps.length }}</strong></article>
-  <article class="critical"><span>Caídas / diagnóstico</span><strong>{{ store.criticalCases().length }}</strong></article>
-  <article class="warning"><span>Próximas / consumibles</span><strong>{{ store.nearLimitCases().length }}</strong></article>
-  <article><span>Seleccionadas STT</span><strong>{{ selectedUnitCount() }}</strong></article>
-  <article><span>Backlog visible</span><strong>{{ store.backlogCases().length }}</strong></article>
+  <article><span>Total bombeadores</span><strong>{{ store.state().pumps.length }}</strong></article>
+  <article><span>En locación</span><strong>{{ store.state().pumps.length }}</strong></article>
+  <article class="critical"><span>Caídas</span><strong>{{ fallenCount() }}</strong></article>
 </section>
 
 @if (store.pendingAlerts().length) {
@@ -33,21 +31,7 @@
   </section>
 </div>
 
-<div class="operational-grid lower-grid">
-  <section class="case-section selected-section">
-    <header><div><span class="eyebrow">Ventana objetivo {{ store.state().stage.targetMinutes }} min</span><h2>Plan STT actual</h2></div><b>{{ store.selectedCases().length }}</b></header>
-    @for (failureCase of store.selectedCases(); track failureCase.caseId) {
-      <article class="compact-case"><strong>#{{ failureCase.sttOrder }} · {{ failureCase.affectedPumpId }}</strong><span>{{ failureCase.responsibleGroup }} · {{ failureCase.plannedAction }} · {{ failureCase.minutesToRecovery ?? 's/d' }} min</span></article>
-      @if (failureCase.replacementPumpId) { <article class="compact-case replacement"><strong>#{{ (failureCase.sttOrder ?? 1) + 2 }} · {{ failureCase.replacementPumpId }}</strong><span>Reemplazo de {{ failureCase.affectedPumpId }} · Rig In · 5 min</span></article> }
-    }
-  </section>
-  <section class="case-section backlog-section">
-    <header><div><span class="eyebrow">No desaparece del flujo</span><h2>Backlog visible</h2></div><b>{{ store.backlogCases().length }}</b></header>
-    @for (failureCase of store.backlogCases(); track failureCase.caseId) {
-      <article class="compact-case"><strong>{{ failureCase.affectedPumpId }} · {{ failureCase.workStatus }}</strong><span>{{ failureCase.sttReadiness }} · {{ failureCase.deferredReason }}</span></article>
-    }
-  </section>
-</div>
+<section class="fall-history"><header><div><span class="eyebrow">HISTORIAL RECONOCIDO</span><h2>Tabla resumen de caídas</h2></div><div><b>{{ acknowledgedCases().length }}</b><button type="button" (click)="downloadHistory()">Descargar tabla</button></div></header><div><table><thead><tr><th>CaptureId</th><th>Hora</th><th>Supervisor</th><th>Unidad</th><th>Manifold</th><th>Posición</th><th>Estado</th><th>Falla</th><th>Responsable</th><th>Plan</th><th>Reemplazo</th><th>Recuperación</th><th>Tarea</th><th>Comentarios</th></tr></thead><tbody>@for (failureCase of acknowledgedCases(); track failureCase.caseId) { <tr><td>{{ latestCaptureId(failureCase.caseId) }}</td><td>{{ failureCase.acknowledgedAt | date:'dd/MM HH:mm' }}</td><td>{{ store.state().stage.capturedBy }}</td><td>{{ failureCase.affectedPumpId }}</td><td>{{ manifoldForPump(failureCase.affectedPumpId) }}</td><td>{{ pumpPosition(failureCase.affectedPumpId) }}</td><td>{{ failureCase.workStatus }}</td><td>{{ failureCase.failureReason }}</td><td>{{ failureCase.responsibleGroup }}</td><td>{{ failureCase.partOfPlan }}</td><td>{{ failureCase.replacementPumpId || '—' }}</td><td>{{ failureCase.minutesToRecovery ?? '—' }}</td><td>{{ failureCase.taskDescription }}</td><td>{{ failureCase.comments || '—' }}</td></tr> } @empty { <tr><td colspan="14">Sin alertas reconocidas.</td></tr> }</tbody></table></div></section>
 
 <ng-template #caseCard let-failureCase>
   <article class="case-card" [class.draft-rule]="failureCase.ruleStatus === 'Draft - technical validation required'">
@@ -63,6 +47,7 @@
       <div><dt>Reemplazo</dt><dd>{{ failureCase.replacementPumpId || '—' }}</dd></div>
       <div><dt>Trabajo</dt><dd>{{ failureCase.workStatus }}</dd></div>
     </dl>
+    @if (swapSuggestion(failureCase); as replacementPumpId) { <p class="swap-suggestion">Swap {{ replacementPumpId }}</p> }
     @if (failureCase.ruleStatus === 'Draft - technical validation required') { <p class="technical-warning">Requiere validación técnica</p> }
     <button type="button" (click)="openWorkflow(failureCase)">Gestionar caso</button>
   </article>

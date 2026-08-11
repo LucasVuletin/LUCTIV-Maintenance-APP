@@ -1,4 +1,4 @@
-<section class="plan-heading"><div><span>PLANIFICACIÓN Y EJECUCIÓN</span><h2>Plan STT actual</h2><p>Todos los candidatos permanecen visibles; <b>PartOfPlan = Yes</b> identifica únicamente la ventana actual.</p></div><button type="button" (click)="store.confirmPlan()">Confirmar plan y captura</button></section>
+<section class="plan-heading"><div><span>PLANIFICACIÓN Y EJECUCIÓN</span><h2>Plan STT actual</h2><p>Todos los candidatos permanecen visibles; <b>PartOfPlan = Yes</b> identifica únicamente la ventana actual.</p></div><div><button type="button" (click)="clearCandidates()">Limpiar candidatos</button><button type="button" (click)="store.confirmPlan()">Confirmar plan y captura</button></div></section>
 
 <section class="estimate" [class.risk]="store.planEstimate().status === 'risk'" [class.exceeds]="store.planEstimate().status === 'exceeds'"><article><span>PE secuencial</span><strong>{{ store.planEstimate().peMinutes }} min</strong></article><article><span>IEM secuencial</span><strong>{{ store.planEstimate().iemMinutes }} min</strong></article><article><span>Proyección paralela</span><strong>{{ store.planEstimate().projectedMinutes }} min</strong></article><article><span>Ventana objetivo</span><strong>{{ store.planEstimate().targetMinutes }} min</strong></article><b>{{ store.planEstimate().status === 'fit' ? 'DENTRO DE VENTANA' : store.planEstimate().status === 'risk' ? 'PLAN EN RIESGO' : 'EXCEDE VENTANA STT' }}</b></section>
 
@@ -15,7 +15,6 @@
           @if (failureCase.workStatus === 'In progress') { <strong class="clock">{{ elapsed(failureCase) }}</strong><button type="button" class="finish" (click)="openCompletion(failureCase)">Finalizar trabajo</button> }
         </div>
       </article>
-      @if (failureCase.replacementPumpId) { <article class="replacement"><b>#{{ (failureCase.sttOrder ?? 1) + 2 }} · PUMP {{ failureCase.replacementPumpId }}</b><span>Mismo {{ failureCase.caseId }} · Rig In · 5 min · {{ failureCase.responsibleGroup }}</span></article> }
     }
   </section>
 

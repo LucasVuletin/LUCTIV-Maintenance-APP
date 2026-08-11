@@ -33,6 +33,7 @@ function migratePump(record: Record<string, unknown>, index: number): Pump {
     id: stringValue(record, 'id', `pump-migrated-${index + 1}`),
     sap: stringValue(record, 'sap', String(index + 1).padStart(4, '0')),
     pumpType: 'Fracturing pump',
+    pumpModel: record['signalColumnCount'] === 5 ? 'Q10' : 'HT200',
     side: sideValue === 'left' || sideValue === 'right' ? sideValue : 'bench',
     manifoldId: typeof record['manifoldId'] === 'string' ? record['manifoldId'] : null,
     row: numberValue(record, 'row', index),
@@ -40,6 +41,10 @@ function migratePump(record: Record<string, unknown>, index: number): Pump {
     position: numberValue(record, 'position', index + 1),
     actuatorNumber: '',
     isDgb: record['isDgb'] === true,
+    dgbSubstitutionPercentage: numberValue(record, 'substitutionPercentage', 0),
+    dgbSubstitutionError: stringValue(record, 'substitutionError'),
+    supervisorComment: stringValue(record, 'supervisorComment'),
+    dynamicStatus: operationState === 'operative' ? sideValue === 'bench' ? 'available' : 'running' : 'offline',
     signals: {
       p: numberValue(signals, 'p', 1),
       d: numberValue(signals, 'd', 1),
@@ -96,6 +101,7 @@ function preliminaryCase(stageExecutionId: string, pumpId: string, now: string, 
     ruleId: null,
     ruleStatus: null,
     technicalValidationConfirmedAt: null,
+    queueClearedAt: null,
     ...details,
   };
 }
@@ -146,12 +152,15 @@ export function migrateLegacyState(raw: unknown): PrimeMaintenanceState {
     schemaVersion: 3,
     stage: {
       stageExecutionId,
+      mode: 'zipperfrac',
       pad,
       setId: selectedSet,
       spreadIdentifier: 'SPREAD-MIGRADO',
       crewName: 'Crew sin migrar',
       well,
       stage: stageNumber,
+      secondaryWell: '',
+      secondaryStage: null,
       capturedBy: 'Usuario migrado',
       exportedBy: 'Usuario migrado',
       targetMinutes: numberValue(interstagePlan, 'targetMinutes', 15),
@@ -169,7 +178,7 @@ export function migrateLegacyState(raw: unknown): PrimeMaintenanceState {
     slotActuators: isRecord(raw['slotActuators'])
       ? Object.fromEntries(Object.entries(raw['slotActuators']).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
       : {},
-    failureCases: cases,
+    failureCases: cases.map((failureCase) => ({ ...failureCase, queueClearedAt: failureCase.queueClearedAt ?? null })),
     captures: [],
     caseSequenceByPump: Object.fromEntries(cases.map((failureCase) => [failureCase.affectedPumpId, 1])),
     captureSequence: 0,
@@ -180,6 +189,37 @@ function isPrimeState(value: unknown): value is PrimeMaintenanceState {
   return isRecord(value) && value['schemaVersion'] === 3 && isRecord(value['stage']) && Array.isArray(value['pumps']) && Array.isArray(value['failureCases']) && Array.isArray(value['captures']);
 }
 
+function normalizePrimeState(state: PrimeMaintenanceState): PrimeMaintenanceState {
+  const mode = ['zipperfrac', 'simulfrac', 'dualfrac'].includes(state.stage.mode) ? state.stage.mode : 'zipperfrac';
+  return {
+    ...state,
+    stage: {
+      ...state.stage,
+      mode,
+      secondaryWell: state.stage.secondaryWell ?? '',
+      secondaryStage: state.stage.secondaryStage ?? null,
+    },
+    failureCases: state.failureCases.map((failureCase) => ({ ...failureCase, queueClearedAt: failureCase.queueClearedAt ?? null })),
+    pumps: state.pumps.map((pump) => ({
+      ...pump,
+      dgbSubstitutionPercentage: pump.dgbSubstitutionPercentage ?? 0,
+      dgbSubstitutionError: pump.dgbSubstitutionError ?? '',
+      supervisorComment: pump.supervisorComment ?? '',
+      pumpModel: pump.pumpModel === 'Q10' ? 'Q10' : 'HT200',
+      dynamicStatus: pump.dynamicStatus
+        ?? (pump.currentStatus === 'In Maintenance'
+          ? 'maintenance'
+          : pump.conditionClass === 'Broken'
+            ? 'down'
+            : pump.currentStatus.includes('Not Working')
+              ? 'offline'
+              : ['Almost / Consumable', 'Operational condition'].includes(pump.conditionClass)
+                ? 'warning'
+                : pump.side === 'bench' || pump.currentStatus === 'Ready' ? 'available' : 'running'),
+    })),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class LocalMaintenanceRepository implements MaintenanceRepository {
   load(): PrimeMaintenanceState {
@@ -187,7 +227,7 @@ export class LocalMaintenanceRepository implements MaintenanceRepository {
       const current = localStorage.getItem(PRIME_STORAGE_KEY);
       if (current) {
         const parsed: unknown = JSON.parse(current);
-        if (isPrimeState(parsed)) return parsed;
+        if (isPrimeState(parsed)) return normalizePrimeState(parsed);
       }
       const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
       if (legacy) {

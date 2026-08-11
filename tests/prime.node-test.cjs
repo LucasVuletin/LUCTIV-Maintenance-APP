@@ -67,6 +67,13 @@ test('maps one summary row per case', () => {
   assert.equal(new Set(summary.map((row) => row.CaseId)).size, summary.length);
 });
 
+test('rejects duplicate pump assignments through state invariants', () => {
+  const state = prime.createPrimeDemoState();
+  const duplicate = { ...state.pumps[0], id: 'duplicate-pump', sap: '9999' };
+  const errors = prime.validatePrimeState({ ...state, pumps: [...state.pumps, duplicate] });
+  assert.match(errors.join(' '), /misma posición/);
+});
+
 test('migrates legacy pumps, alerts and linked STT tasks', () => {
   const migrated = prime.migrateLegacyState({ schemaVersion: 2, selectedSet: 5, stageContext: { pad: 'PAD-X', primary: { well: '12', stage: '7' } }, manifolds: [{ id: 'm1', label: 'MFD-01', type: 'dirty', pumpsPerSide: 8 }], pumps: [{ id: 'p1', sap: '1234', side: 'left', manifoldId: 'm1', row: 0, connection: 'dirty', position: 1, operationState: 'non-operative', isDgb: false, signals: { p: 1, d: 2, s: 3 } }], operationalEvents: [{ pumpSap: '1234', createdAt: '2026-08-06T10:00:00.000Z', offlineReason: 'Empaque', category: 'Manual', department: 'PE', decision: 'pending', recommendedAction: 'Reparar' }], interstagePlan: { targetMinutes: 15, tasks: [{ pumpSap: '1234', action: 'Repair In-Line', detail: 'Cambiar empaque', createdAt: '2026-08-06T10:05:00.000Z' }] } });
   assert.equal(migrated.schemaVersion, 3);

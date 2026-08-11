@@ -21,8 +21,9 @@ export class SttPlanComponent implements OnDestroy {
     if (failureCase && failureCase.workStatus !== 'In progress') this.store.startWork(failureCase.caseId);
   }
   ngOnDestroy(): void { window.clearInterval(this.timer); }
-  protected allCandidates(): FailureCase[] { return [...this.store.openCases()].sort((a, b) => Number(b.partOfPlan === 'Yes') - Number(a.partOfPlan === 'Yes') || (a.sttOrder ?? 99) - (b.sttOrder ?? 99)); }
+  protected allCandidates(): FailureCase[] { return [...this.store.currentStageCases()].sort((a, b) => Number(b.partOfPlan === 'Yes') - Number(a.partOfPlan === 'Yes') || (a.sttOrder ?? 99) - (b.sttOrder ?? 99)); }
   protected elapsed(failureCase: FailureCase): string { if (!failureCase.workStartAt) return '00:00'; const end = failureCase.workEndAt ? Date.parse(failureCase.workEndAt) : this.now(); const seconds = Math.max(0, Math.floor((end - Date.parse(failureCase.workStartAt)) / 1000)); return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; }
+  protected clearCandidates(): void { if (window.confirm('¿Limpiar candidatos, caídas y mantenimientos visibles? Permanecerán en el histórico.')) this.store.clearOperationalQueue(); }
   protected select(failureCase: FailureCase): void { this.store.decideCase(failureCase.caseId, 'include'); }
   protected defer(failureCase: FailureCase): void { this.store.decideCase(failureCase.caseId, 'backlog'); }
   protected openCompletion(failureCase: FailureCase): void { this.completionCaseId.set(failureCase.caseId); this.completionDraft = { actualAction: '', confirmedFailureReason: '', resolutionOutcome: '', returnToService: false, technicalValidationConfirmed: false }; this.completionError = ''; }

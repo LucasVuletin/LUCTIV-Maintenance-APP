@@ -5,6 +5,9 @@ export type SetNumber = 1 | 2 | 3 | 4 | 5 | 6;
 export type PumpSide = 'left' | 'right' | 'bench';
 export type PumpConnection = 'clean' | 'dirty' | 'none';
 export type ManifoldType = 'clean' | 'dirty';
+export type StageMode = 'zipperfrac' | 'simulfrac' | 'dualfrac';
+export type PumpDynamicStatus = 'running' | 'available' | 'warning' | 'down' | 'maintenance' | 'offline';
+export type PumpModel = 'HT200' | 'Q10';
 export type CaptureMoment = 'Stage start' | 'Failure detection' | 'STT plan confirmation' | 'STT completion' | 'Stage close' | 'Manual';
 export type CaseRuleStatus = 'Source example' | 'Draft - technical validation required' | null;
 
@@ -25,6 +28,7 @@ export interface Pump {
   id: string;
   sap: string;
   pumpType: string;
+  pumpModel: PumpModel;
   side: PumpSide;
   manifoldId: string | null;
   row: number;
@@ -32,6 +36,10 @@ export interface Pump {
   position: number;
   actuatorNumber: string;
   isDgb: boolean;
+  dgbSubstitutionPercentage: number;
+  dgbSubstitutionError: string;
+  supervisorComment: string;
+  dynamicStatus: PumpDynamicStatus;
   signals: PumpSignals;
   currentStatus: string;
   conditionClass: string;
@@ -46,12 +54,15 @@ export interface Pump {
 
 export interface StageExecution {
   stageExecutionId: string;
+  mode: StageMode;
   pad: string;
   setId: SetNumber;
   spreadIdentifier: string;
   crewName: string;
   well: string;
   stage: number;
+  secondaryWell: string;
+  secondaryStage: number | null;
   capturedBy: string;
   exportedBy: string;
   targetMinutes: number;
@@ -96,6 +107,7 @@ export interface FailureCase {
   ruleId: string | null;
   ruleStatus: CaseRuleStatus;
   technicalValidationConfirmedAt: string | null;
+  queueClearedAt: string | null;
 }
 
 export interface PumpStageLogRow {

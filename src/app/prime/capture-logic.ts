@@ -64,7 +64,7 @@ export function mapPumpToPrimeRow(state: PrimeMaintenanceState, pump: Pump, capt
     ConfirmedFailureReason: failureCase?.confirmedFailureReason ?? '',
     ResolutionOutcome: failureCase?.resolutionOutcome ?? '',
     ReturnToServiceAt: failureCase?.returnToServiceAt ?? '',
-    Comments: failureCase?.comments ?? '',
+    Comments: [failureCase?.comments, pump.supervisorComment].filter(Boolean).join(' · '),
     PumpRate: pump.pumpRate,
     PumpPressure: pump.pumpPressure,
     CleanRate: pump.cleanRate,

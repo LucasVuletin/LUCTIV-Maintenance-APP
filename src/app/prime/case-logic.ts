@@ -58,6 +58,7 @@ export function createOrUpdateFailureCase(
     ruleId: input.ruleId,
     ruleStatus: input.ruleStatus,
     technicalValidationConfirmedAt: null,
+    queueClearedAt: null,
   };
 }
 
