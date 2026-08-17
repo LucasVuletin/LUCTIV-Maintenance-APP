@@ -7,7 +7,13 @@ const root = resolve(
   fileURLToPath(new URL('../dist/luctiv-maintenance-app/browser/', import.meta.url)),
 );
 const host = process.env.LUCTIV_HOST || '127.0.0.1';
-const port = Number(process.env.LUCTIV_PORT || 4200);
+const portArgumentIndex = process.argv.indexOf('--port');
+const portArgument = portArgumentIndex >= 0 ? process.argv[portArgumentIndex + 1] : undefined;
+const port = Number(portArgument || process.env.LUCTIV_PORT || 4200);
+
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error(`Puerto invalido: ${portArgument ?? process.env.LUCTIV_PORT ?? ''}`);
+}
 
 const contentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -36,14 +42,15 @@ if (!existsSync(join(root, 'index.html'))) {
     const relativePath = normalize(decodedPath).replace(/^[/\\]+/, '');
     const requestedPath = resolve(root, relativePath);
     const isInsideRoot =
-      requestedPath === root || requestedPath.startsWith(`${root}\\`) || requestedPath.startsWith(`${root}/`);
+      requestedPath === root ||
+      requestedPath.startsWith(`${root}\\`) ||
+      requestedPath.startsWith(`${root}/`);
     const existingPath =
       isInsideRoot && existsSync(requestedPath) && statSync(requestedPath).isFile()
         ? requestedPath
         : join(root, 'index.html');
     const contentType =
-      contentTypes.get(extname(existingPath).toLowerCase()) ??
-      'application/octet-stream';
+      contentTypes.get(extname(existingPath).toLowerCase()) ?? 'application/octet-stream';
 
     response.writeHead(200, {
       'Cache-Control': existingPath.endsWith('index.html')
