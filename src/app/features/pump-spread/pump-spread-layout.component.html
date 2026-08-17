@@ -1,0 +1,57 @@
+<section class="spread-shell" [attr.data-manifold-type]="layout().manifoldType" [attr.data-view]="dataView()" [attr.aria-label]="'Layout operativo ' + layout().manifoldLabel">
+  <div class="spread-grid">
+    <header class="spread-heading spread-heading--left"><strong>{{ layout().left.label }}</strong><span>{{ layout().left.totalRateBpm | number:'1.0-1' }} BPM</span></header>
+    <header class="spread-heading spread-heading--right"><strong>{{ layout().right.label }}</strong><span>{{ layout().right.totalRateBpm | number:'1.0-1' }} BPM</span></header>
+
+    <div class="manifold" [style.grid-row]="'2 / span ' + rows().length"><span>{{ layout().manifoldLabel }}</span></div>
+
+    @for (row of rows(); track row.index) {
+      <div class="pump-number pump-number--left" [style.grid-row]="row.index + 2"><strong>{{ row.left.operationalId ?? '—' }}</strong><small>{{ row.left.pumpNumber ?? '' }}</small></div>
+      <div class="pump-position pump-position--left" [class.pump-position--menu-open]="openStatusPump() === row.left.pumpNumber" [style.grid-row]="row.index + 2" (dragover)="allowDrop($event)" (drop)="dropPump(row.left.slotId, $event)">
+        <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: row.left }" />
+      </div>
+      <div class="connector connector--left" [style.grid-row]="row.index + 2"><input [value]="row.left.connectorLabel" maxlength="3" aria-label="Actuador izquierdo" (change)="updateConnector(row.left.slotId, $event)" /></div>
+      <div class="connector connector--right" [style.grid-row]="row.index + 2"><input [value]="row.right.connectorLabel" maxlength="3" aria-label="Actuador derecho" (change)="updateConnector(row.right.slotId, $event)" /></div>
+      <div class="pump-position pump-position--right" [class.pump-position--menu-open]="openStatusPump() === row.right.pumpNumber" [style.grid-row]="row.index + 2" (dragover)="allowDrop($event)" (drop)="dropPump(row.right.slotId, $event)">
+        <ng-container [ngTemplateOutlet]="pumpCard" [ngTemplateOutletContext]="{ pump: row.right }" />
+      </div>
+      <div class="pump-number pump-number--right" [style.grid-row]="row.index + 2"><strong>{{ row.right.operationalId ?? '—' }}</strong><small>{{ row.right.pumpNumber ?? '' }}</small></div>
+    }
+  </div>
+  <footer class="spread-footer"><span>{{ layout().manifoldType === 'clean' ? 'LIMPIO' : 'SUCIO' }}</span><span>LUCTIV · Maintenance Planning</span></footer>
+</section>
+
+<ng-template #pumpCard let-pump="pump">
+  @if (pump.pumpNumber) {
+    <article class="pump-card" draggable="true" [attr.data-status]="pump.status" [class.pump-card--selected]="selectedPumpId() === pump.pumpNumber" [class.pump-card--dgb-required]="pump.isDgb && pump.dgbSubstitutionPercentage === 0 && !pump.supervisorComment.trim()" (dragstart)="beginDrag(pump, $event)">
+      <button type="button" class="pump-card__data" [attr.aria-label]="'Bomba ' + pump.pumpNumber + ', estado ' + statusLabel(pump.status)" (click)="selectPump(pump)">
+        @if (dataView() === 'operation') {
+          <span><small>CAUDAL</small><strong>{{ pump.rateBpm ?? '—' }} BPM</strong></span>
+          <span><small>CAMBIO</small><strong>{{ pump.gear ?? '—' }}</strong></span>
+          <span><small>RPM</small><strong>{{ pump.rpm ?? '—' }}</strong></span>
+        } @else {
+          <div class="pump-card__pds" [attr.data-columns]="pump.signalColumnCount">
+            @for (rowLabel of ['P', 'D', 'S']; track rowLabel) {
+              <b>{{ rowLabel }}</b>
+              @for (column of signalColumns(pump.signalColumnCount); track column) { <span>{{ signalValue(pump, rowLabel) }}</span> }
+            }
+          </div>
+        }
+      </button>
+      <div class="pump-card__footer">
+        <div class="status-picker">
+          <button type="button" class="status-picker__trigger" (click)="toggleStatus(pump.pumpNumber, $event)">{{ statusLabel(pump.status) }}<span>⌄</span></button>
+          @if (openStatusPump() === pump.pumpNumber) {
+            <div class="status-picker__menu">
+              @for (status of statuses; track status) { <button type="button" [class.active]="status === pump.status" (click)="chooseStatus(pump.pumpNumber, status, $event)">{{ statusLabel(status) }}</button> }
+            </div>
+          }
+        </div>
+        <input class="pump-card__comment" [value]="pump.supervisorComment" [placeholder]="pump.isDgb && pump.dgbSubstitutionPercentage === 0 ? 'Justificar sin sustitución' : 'Comentario supervisor'" aria-label="Comentario del supervisor" (pointerdown)="$event.stopPropagation()" (change)="updateComment(pump.pumpNumber, $event)" />
+        <b class="pump-card__dgb">{{ pump.isDgb ? 'DGB ' + pump.dgbSubstitutionPercentage + '%' : 'NO DGB' }}</b>
+      </div>
+    </article>
+  } @else {
+    <button type="button" class="pump-card pump-card--empty" aria-label="Agregar bomba en esta posición" (click)="addAtSlot(pump.slotId)"><strong>+</strong><span>POSICIÓN LIBRE</span></button>
+  }
+</ng-template>

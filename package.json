@@ -1,14 +1,22 @@
 {
   "name": "luctiv-maintenance-app",
   "version": "0.1.0",
-  "description": "LUCTIV: Maintenance APP — operaciones y mantenimiento de bombas.",
+  "description": "LUCTIV Maintenance APP — Operaciones y mantenimiento de bombas.",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "sync:prime": "node scripts/sync-prime.mjs",
+    "export:prime-sample": "node scripts/export-prime-sample.mjs",
+    "verify:prime": "node scripts/verify-prime-acceptance.mjs",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "prebuild": "npm run sync:prime",
     "build": "ng build",
     "preview": "node tools/serve-dist.mjs",
+    "preview:final": "node tools/serve-dist.mjs --port 4300",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "node scripts/run-tests.mjs",
+    "test:angular": "ng test",
+    "test:ci": "npm test"
   },
   "private": true,
   "engines": {
@@ -22,6 +30,7 @@
     "@angular/forms": "20.3.27",
     "@angular/platform-browser": "20.3.27",
     "@angular/router": "20.3.27",
+    "exceljs": "^4.4.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -33,5 +42,8 @@
     "prettier": "^3.8.1",
     "typescript": "~5.8.2",
     "vitest": "~3.2.7"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }

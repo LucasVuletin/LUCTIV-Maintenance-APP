@@ -1,0 +1,88 @@
+<section class="summary-strip" aria-label="Resumen operacional">
+  <article><span>Total bombeadores</span><strong>{{ store.state().pumps.length }}</strong></article>
+  <article><span>En locación</span><strong>{{ store.state().pumps.length }}</strong></article>
+  <article class="critical"><span>Caídas</span><strong>{{ fallenCount() }}</strong></article>
+</section>
+
+@if (store.pendingAlerts().length) {
+  <section class="alert-banner" aria-live="assertive">
+    <div><span>ALERTA OPERACIONAL PRIME</span><strong>{{ store.pendingAlerts().length }} condición(es) requieren reconocimiento</strong></div>
+    <button type="button" (click)="openWorkflow(store.pendingAlerts()[0])">Atender alerta</button>
+  </section>
+}
+
+<div class="operational-grid">
+  <section class="case-section critical-section">
+    <header><div><span class="eyebrow">Prioridad inmediata</span><h2>Bombas caídas / críticas</h2></div><b>{{ store.criticalCases().length }}</b></header>
+    <div class="case-list">
+      @for (failureCase of store.criticalCases(); track failureCase.caseId) {
+        <ng-container [ngTemplateOutlet]="caseCard" [ngTemplateOutletContext]="{ $implicit: failureCase }" />
+      } @empty { <p class="empty">Sin casos críticos abiertos.</p> }
+    </div>
+  </section>
+
+  <section class="case-section warning-section">
+    <header><div><span class="eyebrow">Condición anticipada</span><h2>Próximas a MTTO / consumibles</h2></div><b>{{ store.nearLimitCases().length }}</b></header>
+    <div class="case-list">
+      @for (failureCase of store.nearLimitCases(); track failureCase.caseId) {
+        <ng-container [ngTemplateOutlet]="caseCard" [ngTemplateOutletContext]="{ $implicit: failureCase }" />
+      } @empty { <p class="empty">Sin condiciones próximas a mantenimiento.</p> }
+    </div>
+  </section>
+</div>
+
+<section class="fall-history"><header><div><span class="eyebrow">HISTORIAL RECONOCIDO</span><h2>Tabla resumen de caídas</h2></div><div><b>{{ acknowledgedCases().length }}</b><button type="button" (click)="downloadHistory()">Descargar tabla</button></div></header><div><table><thead><tr><th>CaptureId</th><th>Hora</th><th>Supervisor</th><th>Unidad</th><th>Manifold</th><th>Posición</th><th>Estado</th><th>Falla</th><th>Responsable</th><th>Plan</th><th>Reemplazo</th><th>Recuperación</th><th>Tarea</th><th>Comentarios</th></tr></thead><tbody>@for (failureCase of acknowledgedCases(); track failureCase.caseId) { <tr><td>{{ latestCaptureId(failureCase.caseId) }}</td><td>{{ failureCase.acknowledgedAt | date:'dd/MM HH:mm' }}</td><td>{{ store.state().stage.capturedBy }}</td><td>{{ failureCase.affectedPumpId }}</td><td>{{ manifoldForPump(failureCase.affectedPumpId) }}</td><td>{{ pumpPosition(failureCase.affectedPumpId) }}</td><td>{{ failureCase.workStatus }}</td><td>{{ failureCase.failureReason }}</td><td>{{ failureCase.responsibleGroup }}</td><td>{{ failureCase.partOfPlan }}</td><td>{{ failureCase.replacementPumpId || '—' }}</td><td>{{ failureCase.minutesToRecovery ?? '—' }}</td><td>{{ failureCase.taskDescription }}</td><td>{{ failureCase.comments || '—' }}</td></tr> } @empty { <tr><td colspan="14">Sin alertas reconocidas.</td></tr> }</tbody></table></div></section>
+
+<ng-template #caseCard let-failureCase>
+  <article class="case-card" [class.draft-rule]="failureCase.ruleStatus === 'Draft - technical validation required'">
+    <div class="case-title"><div><span>{{ failureCase.caseId }}</span><strong>PUMP {{ failureCase.affectedPumpId }}</strong></div><em>{{ pumpPosition(failureCase.affectedPumpId) }}</em></div>
+    <dl>
+      <div><dt>Estado</dt><dd>{{ store.pumpBySap(failureCase.affectedPumpId)?.currentStatus }}</dd></div>
+      <div><dt>Condición</dt><dd>{{ failureCase.conditionClass }}</dd></div>
+      <div><dt>Falla</dt><dd>{{ failureCase.failureReason }}</dd></div>
+      <div><dt>Responsable</dt><dd>{{ failureCase.responsibleGroup }}</dd></div>
+      <div><dt>Recuperación</dt><dd>{{ failureCase.minutesToRecovery ?? 's/d' }} min</dd></div>
+      <div><dt>Parte del plan</dt><dd>{{ failureCase.partOfPlan }}</dd></div>
+      <div><dt>Acción</dt><dd>{{ failureCase.plannedAction }}</dd></div>
+      <div><dt>Reemplazo</dt><dd>{{ failureCase.replacementPumpId || '—' }}</dd></div>
+      <div><dt>Trabajo</dt><dd>{{ failureCase.workStatus }}</dd></div>
+    </dl>
+    @if (swapSuggestion(failureCase); as replacementPumpId) { <p class="swap-suggestion">Swap {{ replacementPumpId }}</p> }
+    @if (failureCase.ruleStatus === 'Draft - technical validation required') { <p class="technical-warning">Requiere validación técnica</p> }
+    <button type="button" (click)="openWorkflow(failureCase)">Gestionar caso</button>
+  </article>
+</ng-template>
+
+@if (draft) {
+  <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="workflow-title">
+    <section class="workflow-modal">
+      <header><div><span>{{ draft.caseId }}</span><h2 id="workflow-title">Flujo de alerta · PUMP {{ draft.affectedPumpId }}</h2></div><button type="button" class="close" (click)="closeWorkflow()" aria-label="Cerrar">×</button></header>
+      <div class="step"><b>1</b><div><span>RECONOCIMIENTO</span><p>Confirma que la condición fue recibida. Esto no selecciona trabajo ni elimina el caso.</p></div><button type="button" [disabled]="draft.acknowledgedAt" (click)="acknowledge()">{{ draft.acknowledgedAt ? 'Reconocida' : 'Reconocer alerta' }}</button></div>
+      <div class="step characterization"><b>2</b><div class="step-content"><span>CARACTERIZACIÓN PRELIMINAR</span>
+        @if (draft.ruleStatus === 'Source example') { <p class="source-rule">Recomendación de ejemplo fuente PRIME · {{ draft.ruleId }}</p> }
+        @if (draft.ruleStatus === 'Draft - technical validation required') { <p class="technical-warning">Requiere validación técnica · la sugerencia no confirma diagnóstico ni causa raíz.</p> }
+        <div class="form-grid">
+          <label><span>Clase de condición</span><select [(ngModel)]="draft.conditionClass">@for (option of catalogs.ConditionClass; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Fuente de detección</span><select [(ngModel)]="draft.detectionSource">@for (option of catalogs.DetectionSource; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Área</span><select [(ngModel)]="draft.failureArea">@for (option of catalogs.FailureArea; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Motivo preliminar</span><select [(ngModel)]="draft.failureReason">@for (option of catalogs.FailureReason; track option) { <option [value]="option">{{ option }}</option> }</select><small>{{ errors().failureReason }}</small></label>
+          <label class="wide"><span>Evidencia observada</span><textarea [(ngModel)]="draft.failureEvidence"></textarea><small>{{ errors().failureEvidence }}</small></label>
+          <label><span>Diagnóstico</span><select [(ngModel)]="draft.diagnosisStatus">@for (option of catalogs.DiagnosisStatus; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Grupo responsable</span><select [(ngModel)]="draft.responsibleGroup">@for (option of catalogs.ResponsibleGroup; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Acción planificada</span><select [(ngModel)]="draft.plannedAction">@for (option of catalogs.PlannedAction; track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label><span>Minutos estimados</span><input type="number" min="0" step="1" [(ngModel)]="draft.minutesToRecovery" /><small>{{ errors().minutesToRecovery }}</small></label>
+          <label><span>Reemplazo</span><select [(ngModel)]="draft.replacementPumpId"><option [ngValue]="null">Sin reemplazo</option>@for (pump of store.availablePumps(); track pump.id) { <option [value]="pump.sap">{{ pump.sap }}</option> }</select><small>{{ errors().replacementPumpId }}</small></label>
+          <label class="wide"><span>Descripción de tarea</span><textarea [(ngModel)]="draft.taskDescription"></textarea><small>{{ errors().taskDescription }}</small></label>
+        </div>
+        <button type="button" (click)="saveCharacterization()">Guardar caracterización</button>
+      </div></div>
+      <div class="step decision"><b>3</b><div class="step-content"><span>DECISIÓN OPERATIVA</span><p>La decisión mantiene el mismo CaseId para todas las capturas posteriores.</p><div class="decision-grid">
+        <button type="button" (click)="decide('include')">Incluir en STT actual</button>
+        <button type="button" (click)="decide('backlog')">Mantener en backlog</button>
+        <button type="button" (click)="decide('base')">Enviar a base</button>
+        <button type="button" (click)="decide('monitor')">Monitorear próxima etapa</button>
+        <button type="button" (click)="decide('not-required')">No requiere mantenimiento</button>
+      </div></div></div>
+    </section>
+  </div>
+}

@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "LUCTIV Maintenance APP",
+  "short_name": "LUCTIV",
+  "description": "HMI táctil para layout de operaciones de fractura. Desarrollado por Lucas Vuletin.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#08111f",
+  "theme_color": "#0b1220",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ]
+}

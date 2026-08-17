@@ -34,6 +34,7 @@ yarn-error.log
 .sass-cache/
 /connect.lock
 /coverage
+/.prime-test-build
 /libpeerconnection.log
 testem.log
 /typings
@@ -42,3 +43,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local migration backup
+/LUCTIV-fuente-original.zip

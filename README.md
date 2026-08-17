@@ -3,7 +3,22 @@
 Aplicación Angular para visualizar el spread de bombas, registrar eventos
 operativos y coordinar mantenimiento PE/IEM durante operaciones de fractura.
 
-## Estado inicial
+## Version final PRIME
+
+La implementacion productiva es la version Angular del flujo PRIME integrada en
+este repositorio. El acceso local de referencia es
+`http://127.0.0.1:4300/#operation` y se inicia con:
+
+```powershell
+npm.cmd run build
+npm.cmd run preview:final
+```
+
+Esta version incluye el layout del spread, el resumen priorizado de bombas
+caidas y alertas preventivas, el Plan STT y la trazabilidad historica. Las
+alternativas de diseño o worktrees paralelos no son la fuente productiva.
+
+## Base Angular
 
 Este repositorio es el nuevo punto de partida. No continúa la implementación
 React/Vite anterior: la reescritura productiva se realiza con Angular y
