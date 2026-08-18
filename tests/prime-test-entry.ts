@@ -1,4 +1,5 @@
 export * from '../src/app/core/data/prime-demo-state';
+export * from '../src/app/core/data/default-pump-inventory';
 export * from '../src/app/core/domain/prime-state-invariants';
 export * from '../src/app/core/i18n/technical-translations';
 export * from '../src/app/core/services/local-maintenance.repository';

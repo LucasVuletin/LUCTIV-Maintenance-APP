@@ -50,13 +50,18 @@ test('links replacement and affected pumps to one case', () => {
 
 test('groups every spread pump under one CaptureId', () => {
   const capture = prime.createOperationalCapture(prime.createPrimeDemoState(), 'Manual', '2026-08-06T12:00:00.000Z');
-  assert.equal(capture.rows.length, 8);
+  assert.equal(capture.rows.length, 41);
   assert.deepEqual([...new Set(capture.rows.map((row) => row.CaptureId))], [capture.captureId]);
 });
 
-test('keeps all eight PRIME example pumps in the default app state', () => {
+test('loads the complete 41-pump LUCTIV inventory without overlapping slots', () => {
   const state = prime.createPrimeDemoState();
-  assert.deepEqual(state.pumps.map((pump) => pump.sap), ['6672', '2268', '1951', '2230', '8340', '7720', '4896', '9800']);
+  assert.deepEqual(state.pumps.map((pump) => pump.sap), prime.DEFAULT_PUMP_INVENTORY.map((pump) => pump.sap));
+  assert.equal(state.pumps.length, 41);
+  assert.equal(state.pumps.filter((pump) => pump.side !== 'bench').length, 32);
+  assert.equal(state.pumps.filter((pump) => pump.side === 'bench').length, 9);
+  const occupiedSlots = state.pumps.filter((pump) => pump.side !== 'bench').map((pump) => `${pump.manifoldId}:${pump.side}:${pump.position}`);
+  assert.equal(new Set(occupiedSlots).size, 32);
 });
 
 test('translates UI and PRIME catalog values without mutating source values', () => {
