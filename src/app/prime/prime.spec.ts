@@ -1,4 +1,5 @@
 import { createPrimeDemoState } from '../core/data/prime-demo-state';
+import { DEFAULT_PUMP_INVENTORY } from '../core/data/default-pump-inventory';
 import { FailureCaseInput } from '../core/models/prime.models';
 import { migrateLegacyState } from '../core/services/local-maintenance.repository';
 import { calculateActualMinutes, createOrUpdateFailureCase } from './case-logic';
@@ -94,8 +95,18 @@ describe('PRIME capture and export mapping', () => {
   it('groups every spread pump under one CaptureId', () => {
     const state = createPrimeDemoState();
     const capture = createOperationalCapture(state, 'Manual', '2026-08-06T12:00:00.000Z');
-    expect(capture.rows).toHaveLength(8);
+    expect(capture.rows).toHaveLength(41);
     expect(new Set(capture.rows.map((row) => row.CaptureId))).toEqual(new Set([capture.captureId]));
+  });
+
+  it('loads the complete LUCTIV inventory without overlapping spread slots', () => {
+    const state = createPrimeDemoState();
+    expect(state.pumps.map((pump) => pump.sap)).toEqual(DEFAULT_PUMP_INVENTORY.map((pump) => pump.sap));
+    expect(state.pumps).toHaveLength(41);
+    expect(state.pumps.filter((pump) => pump.side !== 'bench')).toHaveLength(32);
+    expect(state.pumps.filter((pump) => pump.side === 'bench')).toHaveLength(9);
+    const occupiedSlots = state.pumps.filter((pump) => pump.side !== 'bench').map((pump) => `${pump.manifoldId}:${pump.side}:${pump.position}`);
+    expect(new Set(occupiedSlots).size).toBe(32);
   });
 
   it('uses the exact 52-column PRIME order', () => {

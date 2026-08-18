@@ -1,6 +1,7 @@
 import { FailureCase, Manifold, OperationalCapture, PrimeMaintenanceState, Pump, PumpDynamicStatus, PumpStageLogRow, SetNumber } from '../models/prime.models';
 import { findFailureRule } from '../../prime/failure-rules';
 import { PRIME_EXAMPLE_ROWS } from '../../prime/generated/prime.generated';
+import { DEFAULT_PUMP_INVENTORY, DefaultPumpInventoryItem } from './default-pump-inventory';
 
 function stringValue(row: Record<string, unknown>, field: string): string {
   const value = row[field];
@@ -72,6 +73,68 @@ function createPumps(rows: readonly Record<string, unknown>[], manifolds: readon
   });
 }
 
+function currentStatusFor(status: PumpDynamicStatus, side: Pump['side']): string {
+  if (status === 'maintenance') return 'In Maintenance';
+  const rigState = side === 'bench' ? 'Rigged Out' : 'Rigged In';
+  return status === 'down' || status === 'offline'
+    ? `${rigState} - Not Working`
+    : `${rigState} - Working`;
+}
+
+function conditionClassFor(status: PumpDynamicStatus): string {
+  if (status === 'down') return 'Broken';
+  if (status === 'offline' || status === 'maintenance') return 'Under diagnosis';
+  if (status === 'warning') return 'Operational condition';
+  return 'Healthy / Available';
+}
+
+function createInventoryPump(
+  item: DefaultPumpInventoryItem,
+  sourcePump: Pump | undefined,
+  manifolds: readonly Manifold[],
+): Pump {
+  const manifold = item.manifoldType === null
+    ? null
+    : manifolds.find((entry) => entry.type === item.manifoldType) ?? null;
+  const dynamicStatus = sourcePump?.dynamicStatus ?? item.defaultStatus ?? 'running';
+  const connection = item.manifoldType === 'dirty'
+    ? 'dirty'
+    : item.manifoldType === 'clean' ? 'clean' : 'none';
+
+  return {
+    id: sourcePump?.id ?? `pump-${item.sap}`,
+    sap: item.sap,
+    pumpType: sourcePump?.pumpType ?? 'Fracturing pump',
+    pumpModel: sourcePump?.pumpModel ?? 'HT200',
+    side: item.side,
+    manifoldId: manifold?.id ?? null,
+    row: item.position - 1,
+    connection,
+    position: item.position,
+    actuatorNumber: sourcePump?.actuatorNumber ?? String(item.position).padStart(2, '0'),
+    isDgb: sourcePump?.isDgb ?? false,
+    dgbSubstitutionPercentage: sourcePump?.dgbSubstitutionPercentage ?? 0,
+    dgbSubstitutionError: sourcePump?.dgbSubstitutionError ?? '',
+    supervisorComment: sourcePump?.supervisorComment ?? '',
+    dynamicStatus,
+    signals: sourcePump?.signals ?? { p: 1, d: 1, s: 1 },
+    currentStatus: currentStatusFor(dynamicStatus, item.side),
+    conditionClass: sourcePump?.conditionClass ?? conditionClassFor(dynamicStatus),
+    pumpDistance: sourcePump?.pumpDistance ?? null,
+    pumpRate: sourcePump?.pumpRate ?? null,
+    pumpPressure: sourcePump?.pumpPressure ?? null,
+    cleanRate: sourcePump?.cleanRate ?? null,
+    dirtyRate: sourcePump?.dirtyRate ?? null,
+    jobRate: sourcePump?.jobRate ?? null,
+    offsetWellPressure: sourcePump?.offsetWellPressure ?? null,
+  };
+}
+
+function createFullPumpInventory(rows: readonly Record<string, unknown>[], manifolds: readonly Manifold[]): Pump[] {
+  const sourcePumps = new Map(createPumps(rows, manifolds).map((pump) => [pump.sap, pump]));
+  return DEFAULT_PUMP_INVENTORY.map((item) => createInventoryPump(item, sourcePumps.get(item.sap), manifolds));
+}
+
 function createCases(rows: readonly Record<string, unknown>[], stageExecutionId: string): FailureCase[] {
   const caseRows = rows.filter((row) => stringValue(row, 'CaseId') && stringValue(row, 'FailureReason'));
   return caseRows.map((row) => {
@@ -130,7 +193,7 @@ export function createPrimeDemoState(): PrimeMaintenanceState {
     { id: 'manifold-dirty-1', label: 'MFD-01', type: 'dirty', pumpsPerSide: 8 },
     { id: 'manifold-clean-1', label: 'MFC-01', type: 'clean', pumpsPerSide: 8 },
   ];
-  const pumps = createPumps(rows, manifolds);
+  const pumps = createFullPumpInventory(rows, manifolds);
   const failureCases = createCases(rows, stageExecutionId);
   const capture: OperationalCapture = {
     captureId: stringValue(first, 'CaptureId'),
