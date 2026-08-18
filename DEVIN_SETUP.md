@@ -2,12 +2,16 @@
 
 ## Repositorio
 
-Repositorio privado activo:
+Repositorio activo y unica fuente productiva:
 
 `https://github.com/LucasVuletin/LUCTIV-Maintenance-APP`
 
 No usar el repositorio legado como repositorio de trabajo. Su enlace se conserva
 en `docs/SOURCE_OF_TRUTH.md`.
+
+La version oficial es la implementacion Angular PRIME publicada en `main`. No
+usar como base las ramas `codex/correlated-maintenance-workflow` ni
+`codex/version-3-parallel`; se conservan solo como referencias anteriores.
 
 ## Acceso a Devin Enterprise
 
@@ -45,7 +49,12 @@ Usar estos valores en el asistente de configuración.
 
 ### Git Pull
 
-Mantener el comando sugerido por Devin para la rama por defecto `main`.
+Clonar o actualizar siempre la rama por defecto `main`:
+
+```bash
+git checkout main
+git pull --ff-only origin main
+```
 
 ### Configure Secrets
 
@@ -79,28 +88,38 @@ npm test -- --watch=false
 ### Run Local App
 
 ```bash
-npm start -- --host 0.0.0.0
+npm run build
+npm run preview:final
 ```
 
-La aplicación escucha en el puerto `4200`.
+La aplicacion escucha en el puerto `4300`. La vista operativa que debe abrirse y
+validarse es:
+
+`http://127.0.0.1:4300/#operation`
+
+En Devin Cloud, abrir el puerto reenviado `4300` y agregar `#operation` a la URL
+que entregue Devin. La direccion `127.0.0.1` solo existe dentro de cada equipo o
+sesion; el codigo y la vista son los mismos.
 
 ### Additional Notes
 
 ```text
-Read AGENTS.md, docs/PROJECT_BRIEF.md and docs/SOURCE_OF_TRUTH.md before
-changing code. This is an Angular/TypeScript rewrite. Do not add React or port
-legacy components verbatim. The archive under handoff/reference is read-only
-and represents the only accepted legacy snapshot. Run npm run build after
-material changes. Keep UI terminology in Spanish.
+Use main as the only production source. Open the Angular PRIME application at
+port 4300 with the #operation fragment. Read AGENTS.md, docs/PROJECT_BRIEF.md
+and docs/SOURCE_OF_TRUTH.md before changing code. Do not add React or port
+legacy components verbatim. Do not replace main with the Codex V3 alternative.
+The archive under handoff/reference is read-only. Run every required check from
+AGENTS.md after material changes. Keep UI terminology in Spanish.
 ```
 
 ## Escritorio y nube
 
 - Escritorio: el clon local está abierto y marcado como confiable en Devin
   Desktop con la sesión corporativa.
-- Ruta verificada:
-  `C:\Users\H317042\OneDrive - Halliburton\Documents\LUCTIV_ Maintenance APP`.
-- Source Control reconoce la rama `main`, que sigue a `origin/main`.
+- Ruta verificada de la implementacion final en el equipo local:
+  `C:\Users\H317042\OneDrive - Halliburton\Desktop\LUCTIV - Maintenance APP`.
+- La fuente productiva es `origin/main`; cada sesion de trabajo debe partir de
+  esa rama aunque luego cree una rama temporal para sus cambios.
 - Nube: agregar el repo a Devin's Machine y dejar que cada sesión cree su rama.
 - Ambos entornos deben hacer pull antes de empezar y push antes de transferir el
   trabajo al otro.
