@@ -1,61 +1,78 @@
 <div class="app-shell">
   <header class="topbar">
     <div class="brand"><div class="mark">L</div><div><h1>LUCTIV Maintenance APP</h1></div></div>
+    <div class="language-control">
+      <span>{{ i18n.ui('language.label') }}</span>
+      <button
+        type="button"
+        class="language-switch"
+        role="switch"
+        [attr.aria-checked]="i18n.isEnglish()"
+        [attr.aria-label]="i18n.ui(i18n.isEnglish() ? 'language.switchToSpanish' : 'language.switchToEnglish')"
+        [attr.title]="i18n.ui(i18n.isEnglish() ? 'language.switchToSpanish' : 'language.switchToEnglish')"
+        (click)="i18n.toggle()"
+      >
+        <span [class.active]="!i18n.isEnglish()">ES</span>
+        <i aria-hidden="true"><b></b></i>
+        <span [class.active]="i18n.isEnglish()">EN</span>
+      </button>
+      <small>{{ i18n.ui(i18n.isEnglish() ? 'language.english' : 'language.spanish') }}</small>
+    </div>
   </header>
 
   <section class="operational-header" [class.operational-header--collapsed]="preferences.headerCollapsed()">
-    <button type="button" class="header-toggle" (click)="preferences.toggleHeader()" [attr.aria-label]="preferences.headerCollapsed() ? 'Desplegar encabezado' : 'Plegar encabezado'">{{ preferences.headerCollapsed() ? '⌄' : '⌃' }}</button>
+    <button type="button" class="header-toggle" (click)="preferences.toggleHeader()" [attr.aria-label]="i18n.ui(preferences.headerCollapsed() ? 'header.expand' : 'header.collapse')">{{ preferences.headerCollapsed() ? '⌄' : '⌃' }}</button>
     @if (preferences.headerCollapsed()) {
-      <div class="compact-header"><span><b>PAD</b>{{ store.state().stage.pad }}</span><span><b>Pozo</b>{{ store.state().stage.well }}</span><span><b>Etapa</b>{{ store.state().stage.stage }}</span><span><b>SET</b>{{ store.state().stage.setId }}</span><span><b>Operativas</b>{{ stats().operativeInSet }}</span><span><b>Offline</b>{{ offlineCount() }}</span><span class="compact-alert"><b>Alertas</b>{{ alertCount() }}</span><span><b>Actualizado</b>{{ telemetry.lastUpdatedAt() ? (telemetry.lastUpdatedAt() | date:'HH:mm:ss') : '—' }}</span></div>
+      <div class="compact-header"><span><b>PAD</b>{{ store.state().stage.pad }}</span><span><b>{{ i18n.ui('common.well') }}</b>{{ store.state().stage.well }}</span><span><b>{{ i18n.ui('common.stage') }}</b>{{ store.state().stage.stage }}</span><span><b>SET</b>{{ store.state().stage.setId }}</span><span><b>{{ i18n.ui('header.operating') }}</b>{{ stats().operativeInSet }}</span><span><b>{{ i18n.ui('header.offline') }}</b>{{ offlineCount() }}</span><span class="compact-alert"><b>{{ i18n.ui('header.alerts') }}</b>{{ alertCount() }}</span><span><b>{{ i18n.ui('header.updated') }}</b>{{ telemetry.lastUpdatedAt() ? (telemetry.lastUpdatedAt() | date:'HH:mm:ss') : '—' }}</span></div>
     } @else {
     <div class="trace-heading">
-      <div><span>TRAZABILIDAD</span><h2>Pozo y etapa</h2></div>
+      <div><span>{{ i18n.ui('header.traceability') }}</span><h2>{{ i18n.ui('header.wellStage') }}</h2></div>
       <div class="trace-controls">
         <label><span>SET</span><select [ngModel]="store.state().stage.setId" (ngModelChange)="updateSet($event)">@for (set of sets; track set) { <option [value]="set">{{ set }}</option> }</select></label>
-        <label><span>MODALIDAD</span><select [ngModel]="store.state().stage.mode" (ngModelChange)="updateMode($event)">@for (mode of modes; track mode.value) { <option [value]="mode.value">{{ mode.label }}</option> }</select></label>
+        <label><span>{{ i18n.ui('header.mode') }}</span><select [ngModel]="store.state().stage.mode" (ngModelChange)="updateMode($event)">@for (mode of modes; track mode.value) { <option [value]="mode.value">{{ mode.label }}</option> }</select></label>
       </div>
     </div>
 
     <div class="trace-grid" [class.trace-grid--dual]="isDualMode()">
       <label><span>PAD</span><input [ngModel]="store.state().stage.pad" (ngModelChange)="updateStage('pad', $event)" /></label>
-      <label><span>POZO 1</span><input [ngModel]="store.state().stage.well" (ngModelChange)="updateStage('well', $event)" /></label>
-      <label><span>ETAPA 1</span><input type="number" min="0" [ngModel]="store.state().stage.stage" (ngModelChange)="updateStageNumber($event)" /></label>
+      <label><span>{{ i18n.ui('common.well') }} 1</span><input [ngModel]="store.state().stage.well" (ngModelChange)="updateStage('well', $event)" /></label>
+      <label><span>{{ i18n.ui('common.stage') }} 1</span><input type="number" min="0" [ngModel]="store.state().stage.stage" (ngModelChange)="updateStageNumber($event)" /></label>
       @if (isDualMode()) {
-        <label><span>POZO 2</span><input [ngModel]="store.state().stage.secondaryWell" (ngModelChange)="updateStage('secondaryWell', $event)" /></label>
-        <label><span>ETAPA 2</span><input type="number" min="0" [ngModel]="store.state().stage.secondaryStage" (ngModelChange)="updateStageNumber($event, true)" /></label>
+        <label><span>{{ i18n.ui('common.well') }} 2</span><input [ngModel]="store.state().stage.secondaryWell" (ngModelChange)="updateStage('secondaryWell', $event)" /></label>
+        <label><span>{{ i18n.ui('common.stage') }} 2</span><input type="number" min="0" [ngModel]="store.state().stage.secondaryStage" (ngModelChange)="updateStageNumber($event, true)" /></label>
       }
     </div>
 
     <div class="header-actions">
-      <button type="button" (click)="openAddPump()">Agregar bomba</button>
-      <button type="button" (click)="openAddManifold()">Agregar / editar manifold</button>
-      <button type="button" (click)="toggleFullscreen()">{{ isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa' }}</button>
-      <button type="button" (click)="saveLayout()">Guardar layout</button>
-      <button type="button" (click)="clearLayout()">Limpiar layout</button>
-      <button type="button" (click)="exportExcel()">Descargar Excel</button>
-      <button type="button" (click)="captureStage()">Captura etapa</button>
-      <button type="button" class="warning-action" (click)="simulateFailure()">Simular caída</button>
+      <button type="button" (click)="openAddPump()">{{ i18n.ui('header.addPump') }}</button>
+      <button type="button" (click)="openAddManifold()">{{ i18n.ui('header.addEditManifold') }}</button>
+      <button type="button" (click)="toggleFullscreen()">{{ i18n.ui(isFullscreen ? 'header.exitFullscreen' : 'header.fullscreen') }}</button>
+      <button type="button" (click)="saveLayout()">{{ i18n.ui('header.saveLayout') }}</button>
+      <button type="button" (click)="clearLayout()">{{ i18n.ui('header.clearLayout') }}</button>
+      <button type="button" (click)="exportExcel()">{{ i18n.ui('header.downloadExcel') }}</button>
+      <button type="button" (click)="captureStage()">{{ i18n.ui('header.stageCapture') }}</button>
+      <button type="button" class="warning-action" (click)="simulateFailure()">{{ i18n.ui('header.simulateFailure') }}</button>
     </div>
 
     <div class="header-metrics">
-      <article><span>Bombas en SET</span><strong>{{ stats().totalInSet }}</strong></article>
-      <article><span>Operativas en SET</span><strong>{{ stats().operativeInSet }}</strong></article>
-      <article><span>Operativas fuera de SET</span><strong>{{ stats().operativeOutOfSet }}</strong></article>
-      <article><span>No operativas en SET</span><strong>{{ stats().nonOperativeInSet }}</strong></article>
-      <article><span>No operativas fuera de SET</span><strong>{{ stats().nonOperativeOutOfSet }}</strong></article>
-      <article><span>Sustitución DGB</span><strong>{{ stats().dgbSubstitutionPercentage }}%</strong></article>
-      <article><span>Bombas con DGB</span><strong>{{ stats().dgbInSet }}</strong></article>
-      <article><span>Bombas sin DGB</span><strong>{{ stats().nonDgbInSet }}</strong></article>
-      <article><span>Bombas sustituyendo</span><strong>{{ stats().substitutingDgb }}</strong></article>
-      <article><span>Bombas sin sustituir</span><strong>{{ stats().nonSubstitutingDgb }}</strong></article>
+      <article><span>{{ i18n.ui('header.pumpsInSet') }}</span><strong>{{ stats().totalInSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.operatingInSet') }}</span><strong>{{ stats().operativeInSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.operatingOutsideSet') }}</span><strong>{{ stats().operativeOutOfSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.nonOperatingInSet') }}</span><strong>{{ stats().nonOperativeInSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.nonOperatingOutsideSet') }}</span><strong>{{ stats().nonOperativeOutOfSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.dgbSubstitution') }}</span><strong>{{ stats().dgbSubstitutionPercentage }}%</strong></article>
+      <article><span>{{ i18n.ui('header.pumpsWithDgb') }}</span><strong>{{ stats().dgbInSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.pumpsWithoutDgb') }}</span><strong>{{ stats().nonDgbInSet }}</strong></article>
+      <article><span>{{ i18n.ui('header.pumpsSubstituting') }}</span><strong>{{ stats().substitutingDgb }}</strong></article>
+      <article><span>{{ i18n.ui('header.pumpsNotSubstituting') }}</span><strong>{{ stats().nonSubstitutingDgb }}</strong></article>
     </div>
     }
   </section>
 
-  <nav class="main-nav" aria-label="Secciones principales">
-    <button type="button" [class.active]="activeTab() === 'layout'" (click)="setTab('layout')"><span>01</span>Layout</button>
-    <button type="button" [class.active]="activeTab() === 'operation'" (click)="setTab('operation')"><span>02</span>Bombeadores caídos@if (store.pendingAlerts().length) { <b>{{ store.pendingAlerts().length }}</b> }</button>
-    <button type="button" [class.active]="activeTab() === 'stt'" (click)="setTab('stt')"><span>03</span>Plan STT</button>
+  <nav class="main-nav" [attr.aria-label]="i18n.ui('nav.sections')">
+    <button type="button" [class.active]="activeTab() === 'layout'" (click)="setTab('layout')"><span>01</span>{{ i18n.ui('nav.layout') }}</button>
+    <button type="button" [class.active]="activeTab() === 'operation'" (click)="setTab('operation')"><span>02</span>{{ i18n.ui('nav.downPumps') }}@if (store.pendingAlerts().length) { <b>{{ store.pendingAlerts().length }}</b> }</button>
+    <button type="button" [class.active]="activeTab() === 'stt'" (click)="setTab('stt')"><span>03</span>{{ i18n.ui('nav.sttPlan') }}</button>
   </nav>
 
   <main class="workspace">
@@ -69,12 +86,12 @@
 
 @if (isAddPumpOpen()) {
   <div class="header-modal" role="dialog" aria-modal="true" aria-labelledby="header-add-pump">
-    <section><header><div><span>NUEVA UNIDAD</span><h2 id="header-add-pump">Agregar bomba</h2></div><button type="button" (click)="isAddPumpOpen.set(false)">×</button></header><label><span>Número de bomba</span><input inputmode="numeric" maxlength="4" [(ngModel)]="newPumpNumber" (keyup.enter)="addPump()" placeholder="0000" /></label>@if (headerFormError()) { <p>{{ headerFormError() }}</p> }<button type="button" class="submit" (click)="addPump()">Agregar al banco de reserva</button></section>
+    <section><header><div><span>{{ i18n.ui('modal.newUnit') }}</span><h2 id="header-add-pump">{{ i18n.ui('header.addPump') }}</h2></div><button type="button" (click)="isAddPumpOpen.set(false)">×</button></header><label><span>{{ i18n.ui('modal.pumpNumber') }}</span><input inputmode="numeric" maxlength="4" [(ngModel)]="newPumpNumber" (keyup.enter)="addPump()" placeholder="0000" /></label>@if (headerFormError()) { <p>{{ i18n.domain(headerFormError()) }}</p> }<button type="button" class="submit" (click)="addPump()">{{ i18n.ui('modal.addToBench') }}</button></section>
   </div>
 }
 
 @if (isAddManifoldOpen()) {
   <div class="header-modal" role="dialog" aria-modal="true" aria-labelledby="header-add-manifold">
-    <section><header><div><span>CONFIGURACIÓN</span><h2 id="header-add-manifold">Manifolds</h2></div><button type="button" (click)="isAddManifoldOpen.set(false)">×</button></header><div class="manifold-editor">@for (manifold of store.state().manifolds; track manifold.id) { <label><span>{{ manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO' }} · {{ manifold.label }}</span><input type="number" min="1" max="12" [ngModel]="manifold.pumpsPerSide" (ngModelChange)="updateManifoldSlots(manifold.id, $event)" /></label> }</div><div class="modal-grid new-manifold"><label><span>Nuevo tipo</span><select [ngModel]="newManifoldType()" (ngModelChange)="newManifoldType.set($event)"><option value="dirty">SUCIO</option><option value="clean">LIMPIO</option></select></label><label><span>Posiciones por lado</span><input type="number" min="1" max="12" [(ngModel)]="newManifoldSlots" /></label></div><button type="button" class="submit" (click)="addManifold()">Agregar manifold</button></section>
+    <section><header><div><span>{{ i18n.ui('modal.configuration') }}</span><h2 id="header-add-manifold">Manifolds</h2></div><button type="button" (click)="isAddManifoldOpen.set(false)">×</button></header><div class="manifold-editor">@for (manifold of store.state().manifolds; track manifold.id) { <label><span>{{ i18n.ui(manifold.type === 'clean' ? 'layout.clean' : 'layout.slurry') }} · {{ manifold.label }}</span><input type="number" min="1" max="12" [ngModel]="manifold.pumpsPerSide" (ngModelChange)="updateManifoldSlots(manifold.id, $event)" /></label> }</div><div class="modal-grid new-manifold"><label><span>{{ i18n.ui('modal.newType') }}</span><select [ngModel]="newManifoldType()" (ngModelChange)="newManifoldType.set($event)"><option value="dirty">{{ i18n.ui('layout.slurry') }}</option><option value="clean">{{ i18n.ui('layout.clean') }}</option></select></label><label><span>{{ i18n.ui('modal.positionsPerSide') }}</span><input type="number" min="1" max="12" [(ngModel)]="newManifoldSlots" /></label></div><button type="button" class="submit" (click)="addManifold()">{{ i18n.ui('modal.addManifold') }}</button></section>
   </div>
 }

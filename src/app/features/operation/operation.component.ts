@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CaseValidationErrors, FailureCase } from '../../core/models/prime.models';
 import { PrimeMaintenanceStore } from '../../core/services/prime-maintenance.store';
+import { TechnicalI18nService } from '../../core/services/technical-i18n.service';
 import { PRIME_CATALOGS } from '../../prime/catalogs';
 
 @Component({
@@ -13,6 +14,7 @@ import { PRIME_CATALOGS } from '../../prime/catalogs';
 })
 export class OperationComponent {
   protected readonly store = inject(PrimeMaintenanceStore);
+  protected readonly i18n = inject(TechnicalI18nService);
   protected readonly catalogs = PRIME_CATALOGS;
   protected readonly selectedCaseId = signal<string | null>(null);
   protected readonly errors = signal<CaseValidationErrors>({});
@@ -68,7 +70,7 @@ export class OperationComponent {
 
   protected pumpPosition(pumpId: string): string {
     const pump = this.store.pumpBySap(pumpId);
-    if (!pump) return 'Sin posición';
+    if (!pump) return this.i18n.ui('operation.noPosition');
     return pump.side === 'bench' ? 'Off set' : `${pump.side === 'left' ? 'L' : 'R'}-${pump.position}`;
   }
 

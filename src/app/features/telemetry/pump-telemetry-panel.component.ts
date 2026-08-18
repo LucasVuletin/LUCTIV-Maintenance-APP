@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PumpTelemetrySample } from '../../core/models/telemetry.models';
 import { PUMP_TELEMETRY_SOURCE } from '../../core/services/pump-telemetry.provider';
 import { PrimeMaintenanceStore } from '../../core/services/prime-maintenance.store';
+import { TechnicalI18nService } from '../../core/services/technical-i18n.service';
 import { orderPumps, pumpPositionIds } from '../../prime/pump-order';
 
 type TelemetryYAxis = 'rateBpm' | 'engineLoadPct' | 'engineRpm' | 'dischargePressurePsi';
@@ -14,6 +15,7 @@ type TelemetrySortKey = 'position' | 'pumpId' | 'engineLoadPct' | 'engineRpm' | 
 export class PumpTelemetryPanelComponent {
   protected readonly store = inject(PrimeMaintenanceStore);
   protected readonly telemetry = inject(PUMP_TELEMETRY_SOURCE);
+  protected readonly i18n = inject(TechnicalI18nService);
   readonly selectedPumpId = input<string | null>(null);
   readonly pumpSelected = output<string>();
   protected readonly xAxis = signal<TelemetryXAxis>('time');
@@ -45,8 +47,8 @@ export class PumpTelemetryPanelComponent {
   protected sample(pumpId: string): PumpTelemetrySample | null { return this.telemetry.latest()[pumpId] ?? null; }
   protected selectPump(pumpId: string): void { this.pumpSelected.emit(pumpId); }
   protected stateLabel(sample: PumpTelemetrySample | null): string {
-    if (!sample) return 'Sin señal';
-    return { pumping: 'Bombeando', standby: 'Backup', warning: 'Alerta', offline: 'Caída', 'no-communication': 'Sin comunicación' }[sample.signalStatus];
+    if (!sample) return this.i18n.ui('common.noSignal');
+    return this.i18n.ui(`telemetry.${sample.signalStatus}`);
   }
   protected sortBy(key: TelemetrySortKey): void {
     if (this.sortKey() === key) this.sortDirection.update((direction) => direction === 1 ? -1 : 1);

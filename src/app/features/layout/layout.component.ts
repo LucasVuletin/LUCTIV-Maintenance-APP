@@ -6,6 +6,7 @@ import { PumpTelemetrySample } from '../../core/models/telemetry.models';
 import { PumpCommentChangeEvent, PumpConnectorChangeEvent, PumpDataView, PumpPosition, PumpSpreadDropEvent, PumpSpreadLayout, PumpStatus, PumpStatusChangeEvent } from '../../core/models/pump-spread.model';
 import { PUMP_TELEMETRY_SOURCE } from '../../core/services/pump-telemetry.provider';
 import { PrimeMaintenanceStore } from '../../core/services/prime-maintenance.store';
+import { TechnicalI18nService } from '../../core/services/technical-i18n.service';
 import { orderPumps, pumpPositionIds } from '../../prime/pump-order';
 import { PumpSpreadLayoutComponent } from '../pump-spread/pump-spread-layout.component';
 import { AlertsMaintenancePanelComponent } from '../telemetry/alerts-maintenance-panel.component';
@@ -22,6 +23,7 @@ type TelemetrySortKey = 'position' | 'pumpId' | 'engineLoadPct' | 'engineRpm' | 
 export class LayoutComponent {
   protected readonly store = inject(PrimeMaintenanceStore);
   protected readonly telemetry = inject(PUMP_TELEMETRY_SOURCE);
+  protected readonly i18n = inject(TechnicalI18nService);
   protected readonly selectedPumpId = signal<string | null>(null);
   protected readonly isPumpDetailsOpen = signal(false);
   protected readonly dataView = signal<PumpDataView>('operation');
@@ -156,7 +158,7 @@ export class LayoutComponent {
 
   protected removeSelectedPump(): void {
     const pump = this.selectedPump();
-    if (!pump || !window.confirm(`¿Quitar la bomba ${pump.sap} del spread?`)) return;
+    if (!pump || !window.confirm(this.i18n.ui('confirm.removePump', { pump: pump.sap }))) return;
     const error = this.store.removePump(pump.id);
     this.pumpFormError.set(error ?? '');
     if (!error) this.closePumpDetails();
@@ -181,15 +183,7 @@ export class LayoutComponent {
   }
 
   protected statusLabel(status: PumpStatus): string {
-    const labels: Record<PumpStatus, string> = {
-      running: 'EN MARCHA',
-      available: 'DISPONIBLE',
-      warning: 'ALERTA',
-      down: 'FUERA DE SERVICIO',
-      maintenance: 'MTTO',
-      offline: 'OFFLINE',
-    };
-    return labels[status];
+    return this.i18n.ui(`status.${status}`);
   }
 
   protected moveSelectedToBench(): void {
@@ -210,14 +204,14 @@ export class LayoutComponent {
       const pumps = positions.map((position) => this.toPumpPosition(manifold, pumpSide, position));
       return {
         id,
-        label: id === 'A' ? 'Lado arena' : 'Lado químicos',
+        label: this.i18n.ui(id === 'A' ? 'layout.sandSide' : 'layout.chemicalSide'),
         totalRateBpm: pumps.reduce((total, pump) => total + (pump.rateBpm ?? 0), 0),
         pumps,
       } as const;
     };
     return {
       manifoldId: manifold.id,
-      manifoldLabel: manifold.type === 'clean' ? 'LIMPIO' : 'SUCIO',
+      manifoldLabel: this.i18n.ui(manifold.type === 'clean' ? 'layout.clean' : 'layout.slurry'),
       manifoldType: manifold.type,
       left: side('left', 'A'),
       right: side('right', 'B'),
@@ -253,8 +247,8 @@ export class LayoutComponent {
   }
 
   protected telemetryState(sample: PumpTelemetrySample | null): string {
-    if (!sample) return 'Sin señal';
-    return { pumping: 'Bombeando', standby: 'Backup', warning: 'Alerta', offline: 'Caída', 'no-communication': 'Sin comunicación' }[sample.signalStatus];
+    if (!sample) return this.i18n.ui('common.noSignal');
+    return this.i18n.ui(`telemetry.${sample.signalStatus}`);
   }
 
   protected gearFor(sample: PumpTelemetrySample): '1L' | '2L' | '3L' | '4L' {

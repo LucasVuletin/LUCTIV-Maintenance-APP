@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { FailureCase } from '../../core/models/prime.models';
 import { PUMP_TELEMETRY_SOURCE } from '../../core/services/pump-telemetry.provider';
 import { PrimeMaintenanceStore } from '../../core/services/prime-maintenance.store';
+import { TechnicalI18nService } from '../../core/services/technical-i18n.service';
 import { PRIME_CATALOGS } from '../../prime/catalogs';
 
 @Component({ selector: 'app-alerts-maintenance-panel', imports: [FormsModule, DatePipe], templateUrl: './alerts-maintenance-panel.component.html', styleUrl: './alerts-maintenance-panel.component.scss' })
@@ -12,6 +13,7 @@ export class AlertsMaintenancePanelComponent {
   private readonly identityValue = signal('[]');
   @Input() set identityJson(value: string) { this.identityValue.set(value || '[]'); }
   protected readonly telemetry = inject(PUMP_TELEMETRY_SOURCE);
+  protected readonly i18n = inject(TechnicalI18nService);
   protected readonly catalogs = PRIME_CATALOGS;
   protected get store(): PrimeMaintenanceStore { return this.maintenanceStore(); }
   protected readonly identities = computed<readonly { unitId: string; pumpId: string }[]>(() => {
@@ -63,7 +65,7 @@ export class AlertsMaintenancePanelComponent {
   }
 
   protected clearQueue(): void {
-    if (!window.confirm('¿Está de acuerdo con limpiar las alertas y mantenimientos visibles? Los casos permanecerán en trazabilidad.')) return;
+    if (!window.confirm(this.i18n.ui('confirm.clearQueue'))) return;
     this.store.clearOperationalQueue();
   }
 

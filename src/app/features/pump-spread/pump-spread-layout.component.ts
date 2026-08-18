@@ -1,6 +1,7 @@
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { PumpCommentChangeEvent, PumpConnectorChangeEvent, PumpDataView, PumpPosition, PumpSpreadDropEvent, PumpSpreadLayout, PumpStatus, PumpStatusChangeEvent } from '../../core/models/pump-spread.model';
+import { TechnicalI18nService } from '../../core/services/technical-i18n.service';
 
 interface SpreadRow {
   readonly index: number;
@@ -17,6 +18,7 @@ interface SpreadRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PumpSpreadLayoutComponent {
+  protected readonly i18n = inject(TechnicalI18nService);
   readonly layout = input.required<PumpSpreadLayout>();
   readonly dataView = input<PumpDataView>('operation');
   readonly selectedPumpId = input<string | null>(null);
@@ -40,15 +42,7 @@ export class PumpSpreadLayoutComponent {
   });
 
   protected statusLabel(status: PumpStatus): string {
-    const labels: Record<PumpStatus, string> = {
-      running: 'EN MARCHA',
-      available: 'DISPONIBLE',
-      warning: 'ALERTA',
-      down: 'FUERA DE SERVICIO',
-      maintenance: 'MTTO',
-      offline: 'OFFLINE',
-    };
-    return labels[status];
+    return this.i18n.ui(`status.${status}`);
   }
 
   protected selectPump(pump: PumpPosition): void {
