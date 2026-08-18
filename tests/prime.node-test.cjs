@@ -54,6 +54,18 @@ test('groups every spread pump under one CaptureId', () => {
   assert.deepEqual([...new Set(capture.rows.map((row) => row.CaptureId))], [capture.captureId]);
 });
 
+test('keeps all eight PRIME example pumps in the default app state', () => {
+  const state = prime.createPrimeDemoState();
+  assert.deepEqual(state.pumps.map((pump) => pump.sap), ['6672', '2268', '1951', '2230', '8340', '7720', '4896', '9800']);
+});
+
+test('translates UI and PRIME catalog values without mutating source values', () => {
+  assert.equal(prime.uiText('layout.title', 'en'), 'Operational Pump Layout');
+  assert.equal(prime.domainText('Empaque', 'en'), 'Plunger Packing');
+  assert.equal(prime.domainText('Rig Out', 'es'), 'Desmontar del SET');
+  assert.equal(prime.domainText('Comentario libre del supervisor', 'en'), 'Comentario libre del supervisor');
+});
+
 test('preserves exact 52-column export order', () => {
   assert.equal(prime.PRIME_HEADERS.length, 52);
   assert.equal(prime.PRIME_HEADERS[0], 'RecordId');

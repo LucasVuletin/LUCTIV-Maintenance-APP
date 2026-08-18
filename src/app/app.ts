@@ -5,6 +5,7 @@ import { ManifoldType, SetNumber, StageExecution, StageMode } from './core/model
 import { PrimeExportService } from './core/services/prime-export.service';
 import { PUMP_TELEMETRY_SOURCE } from './core/services/pump-telemetry.provider';
 import { PrimeMaintenanceStore } from './core/services/prime-maintenance.store';
+import { TechnicalI18nService } from './core/services/technical-i18n.service';
 import { UiPreferencesService } from './core/services/ui-preferences.service';
 import { LayoutComponent } from './features/layout/layout.component';
 import { OperationComponent } from './features/operation/operation.component';
@@ -31,6 +32,7 @@ export class App {
   protected readonly store = inject(PrimeMaintenanceStore);
   protected readonly telemetry = inject(PUMP_TELEMETRY_SOURCE);
   protected readonly preferences = inject(UiPreferencesService);
+  protected readonly i18n = inject(TechnicalI18nService);
   private readonly exporter = inject(PrimeExportService);
   protected readonly activeTab = signal<AppTab>(this.initialTab());
   protected readonly isAddPumpOpen = signal(false);
@@ -148,7 +150,7 @@ export class App {
   }
 
   protected clearLayout(): void {
-    if (window.confirm('¿Mover todas las bombas al banco de reserva? Los casos PRIME se conservarán.')) this.store.clearLayout();
+    if (window.confirm(this.i18n.ui('confirm.clearLayout'))) this.store.clearLayout();
   }
 
   protected captureStage(): void {
@@ -168,8 +170,11 @@ export class App {
   protected downloadLayoutCapture(): void {
     const state = this.store.state();
     const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-    const lines = state.pumps.map((pump, index) => `${index + 1}. PUMP ${pump.sap} · ${pump.currentStatus} · ${pump.conditionClass}${pump.isDgb ? ' · DGB' : ''}`);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="${Math.max(800, lines.length * 34 + 270)}"><rect width="100%" height="100%" fill="#08111f"/><text x="60" y="75" fill="#f8fafc" font-family="Segoe UI" font-size="38" font-weight="700">LUCTIV: Maintenance APP</text><text x="60" y="120" fill="#b8d0db" font-family="Segoe UI" font-size="23">${escape(state.stage.pad)} · Pozo ${escape(state.stage.well)} · Etapa ${state.stage.stage} · SET ${state.stage.setId}</text><text x="60" y="158" fill="#94a3b8" font-family="Segoe UI" font-size="18">${escape(state.stage.stageExecutionId)} · PRIME ${PRIME_SCHEMA_VERSION}</text>${lines.map((line, index) => `<text x="60" y="${220 + index * 34}" fill="#e2e8f0" font-family="Consolas" font-size="19">${escape(line)}</text>`).join('')}</svg>`;
+    const lines = state.pumps.map(
+      (pump, index) =>
+        `${index + 1}. PUMP ${pump.sap} · ${this.i18n.domain(pump.currentStatus)} · ${this.i18n.domain(pump.conditionClass)}${pump.isDgb ? ' · DGB' : ''}`,
+    );
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="${Math.max(800, lines.length * 34 + 270)}"><rect width="100%" height="100%" fill="#08111f"/><text x="60" y="75" fill="#f8fafc" font-family="Segoe UI" font-size="38" font-weight="700">LUCTIV: Maintenance APP</text><text x="60" y="120" fill="#b8d0db" font-family="Segoe UI" font-size="23">${escape(state.stage.pad)} · ${this.i18n.ui('common.well')} ${escape(state.stage.well)} · ${this.i18n.ui('common.stage')} ${state.stage.stage} · SET ${state.stage.setId}</text><text x="60" y="158" fill="#94a3b8" font-family="Segoe UI" font-size="18">${escape(state.stage.stageExecutionId)} · PRIME ${PRIME_SCHEMA_VERSION}</text>${lines.map((line, index) => `<text x="60" y="${220 + index * 34}" fill="#e2e8f0" font-family="Consolas" font-size="19">${escape(line)}</text>`).join('')}</svg>`;
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const image = new Image();
     image.onload = () => {

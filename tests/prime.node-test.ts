@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createPrimeDemoState } from '../src/app/core/data/prime-demo-state';
+import { domainText, uiText } from '../src/app/core/i18n/technical-translations';
 import { FailureCaseInput } from '../src/app/core/models/prime.models';
 import { migrateLegacyState } from '../src/app/core/services/local-maintenance.repository';
 import { calculateActualMinutes, createOrUpdateFailureCase } from '../src/app/prime/case-logic';
@@ -62,6 +63,18 @@ test('groups every spread pump under one CaptureId', () => {
   const capture = createOperationalCapture(createPrimeDemoState(), 'Manual', '2026-08-06T12:00:00.000Z');
   assert.equal(capture.rows.length, 8);
   assert.deepEqual([...new Set(capture.rows.map((row) => row.CaptureId))], [capture.captureId]);
+});
+
+test('keeps all eight PRIME example pumps in the default app state', () => {
+  const state = createPrimeDemoState();
+  assert.deepEqual(state.pumps.map((pump) => pump.sap), ['6672', '2268', '1951', '2230', '8340', '7720', '4896', '9800']);
+});
+
+test('translates UI and PRIME catalog values without mutating source values', () => {
+  assert.equal(uiText('layout.title', 'en'), 'Operational Pump Layout');
+  assert.equal(domainText('Empaque', 'en'), 'Plunger Packing');
+  assert.equal(domainText('Rig Out', 'es'), 'Desmontar del SET');
+  assert.equal(domainText('Comentario libre del supervisor', 'en'), 'Comentario libre del supervisor');
 });
 
 test('preserves exact 52-column export order', () => {

@@ -1,5 +1,6 @@
 export * from '../src/app/core/data/prime-demo-state';
 export * from '../src/app/core/domain/prime-state-invariants';
+export * from '../src/app/core/i18n/technical-translations';
 export * from '../src/app/core/services/local-maintenance.repository';
 export * from '../src/app/prime/case-logic';
 export * from '../src/app/prime/capture-logic';
